@@ -1655,4 +1655,8 @@ html.fx-off .pin-hint { animation: none; }
 /* The lens attaches filters inline, per target, only while the hole is close
    enough to matter — everything stays crisp the rest of the time. The dock is
    deliberately not a target: it is the navigation and must stay clickable. */
-[data-warp] { will-change: filter; }
+/* No will-change here on purpose: promoting a viewport-sized element to its
+   own layer costs memory on weak integrated GPUs without helping an SVG
+   filter, and layer promotion under a filter is where several driver bugs
+   live. The fallback path transforms word spans instead. */
+.wl-u { display: inline-block; }
