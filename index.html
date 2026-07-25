@@ -19,8 +19,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=30" />
-  <link rel="stylesheet" href="css/editorial.css?v=30" />
+  <link rel="stylesheet" href="css/style.css?v=40" />
+  <link rel="stylesheet" href="css/editorial.css?v=40" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
 </head>
 <body>
@@ -78,6 +78,7 @@
     <div class="noise"></div>
   </div>
   <canvas id="fieldCanvas" aria-hidden="true"></canvas>
+  <canvas id="skyCanvas" aria-hidden="true"></canvas>
 
   <!-- ═══════════ MARGIN RAIL ═══════════ -->
   <div class="rail" aria-hidden="true">
@@ -104,7 +105,7 @@
 
     <!-- menu-bar status cluster — only visible while the desktop is up -->
     <div class="os-status mono" aria-hidden="true">
-      <span class="os-stat os-stat-net" title="Neural field: live">
+      <span class="os-stat os-stat-net" title="Connected">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5a9 9 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg>
       </span>
       <span class="os-stat os-stat-batt" title="Running on caffeine">
@@ -125,7 +126,7 @@
        ═══════════════════════════════════════════════════ -->
   <section class="hero" id="hero"
            data-field="net" data-a="#a855f7" data-b="#22d3ee"
-           data-morph="0" data-density="1" data-link="165" data-pulse="0.05" data-op="1"
+           data-morph="0" data-density="1" data-link="165" data-pulse="0.05" data-op="0"
            data-num="00" data-label="index">
     <div class="swiss masthead">
 
@@ -961,6 +962,11 @@
           <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3Z"/></svg>
         </span>
       </a>
+      <a class="dock-item" href="https://wa.me/qr/77CMMCHW5JAKI1" target="_blank" rel="noopener" data-label="WhatsApp">
+        <span class="dock-tile" style="--c1:#4ae168;--c2:#128c3f">
+          <svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0 0 20.465 3.488"/></svg>
+        </span>
+      </a>
       <a class="dock-item" href="mailto:vardashubhang@gmail.com" data-label="Email">
         <span class="dock-tile" style="--c1:#a855f7;--c2:#22d3ee">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
@@ -993,8 +999,9 @@
     </div>
   </div>
 
-  <script src="js/field.js?v=30"></script>
-  <script src="js/main.js?v=30"></script>
-  <script src="js/scrolly.js?v=30"></script>
+  <script src="js/field.js?v=40"></script>
+  <script src="js/sky.js?v=40"></script>
+  <script src="js/main.js?v=40"></script>
+  <script src="js/scrolly.js?v=40"></script>
 </body>
 </html>

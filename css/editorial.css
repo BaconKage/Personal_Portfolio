@@ -55,6 +55,17 @@ html.fx-off :root { transition: none; }
   opacity: 0.4;
   transition: opacity 1s var(--ease-out);
 }
+/* The desktop wallpaper sits over the neural field and dissolves across the
+   first viewport, handing the background off as you leave the hero.
+   --hero-exit is written by scrolly.js. */
+#skyCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: calc(1 - var(--hero-exit, 0));
+}
+html.fx-off #skyCanvas { opacity: calc(1 - var(--hero-exit, 0)); }
 main { position: relative; z-index: 1; }
 
 .ambient .orb-1 { background: radial-gradient(circle, color-mix(in oklab, var(--accent-a) 34%, transparent), transparent 65%); }

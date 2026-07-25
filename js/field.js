@@ -193,8 +193,10 @@
 
     function resize() {
       dpr = Math.min(window.devicePixelRatio || 1, 2);
-      w = window.innerWidth;
-      h = window.innerHeight;
+      w = window.innerWidth || document.documentElement.clientWidth;
+      h = window.innerHeight || document.documentElement.clientHeight;
+      // pre-layout reads 0; sizing to that would leave the canvas blank
+      if (w < 2 || h < 2) { requestAnimationFrame(resize); return; }
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = w + 'px';

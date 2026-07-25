@@ -25,6 +25,10 @@
   const fieldCanvas = $('#fieldCanvas');
   const field = fieldCanvas && window.NeuralField ? window.NeuralField(fieldCanvas) : null;
 
+  // the hero's wallpaper: a lensed starfield, live only over the first screen
+  const skyCanvas = $('#skyCanvas');
+  const sky = skyCanvas && window.BlackHoleSky ? window.BlackHoleSky(skyCanvas) : null;
+
   const themed = $$('[data-field]');
   let currentSection = null;
 
@@ -96,6 +100,18 @@
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) field.stop();
       else if (motionOn()) field.start();
+    });
+  }
+
+  if (sky) {
+    const nearHero = () => window.scrollY < window.innerHeight;
+    (window.__fxRegister || ((h) => (motionOn() ? h.enable() : h.disable())))({
+      enable: () => { if (nearHero()) sky.start(); else sky.settle(); },
+      disable: () => { sky.stop(); sky.settle(); },
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) sky.stop();
+      else if (motionOn() && nearHero()) sky.start();
     });
   }
 
@@ -566,6 +582,15 @@
     if (hero) {
       const p = clamp(window.scrollY / window.innerHeight, 0, 1);
       hero.style.setProperty('--exit', p.toFixed(3));
+      // the wallpaper crossfades to the neural field across the same range
+      de.style.setProperty('--hero-exit', p.toFixed(3));
+      if (motionOn()) {
+        // only one background loop runs at a time: the wallpaper owns the
+        // hero, the field owns everything below it, and they overlap just
+        // long enough to hand over mid-crossfade
+        if (p < 0.995) sky.start?.(); else sky.stop?.();
+        if (p > 0.12) field?.start(); else field?.stop();
+      }
     }
     $$('[data-parallax]').forEach((el) => {
       const r = el.getBoundingClientRect();
