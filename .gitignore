@@ -9,5 +9,5 @@ desktop.ini
 *.swp
 
 # local tooling state
-.claude/settings.local.json
+.claude/
 node_modules/
