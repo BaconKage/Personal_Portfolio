@@ -351,18 +351,25 @@
   const ring = $('#cursorRing');
   if (dot && ring && !isTouch && motionEnabled) {
     let mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my;
-    addEventListener('mousemove', (e) => {
-      mx = e.clientX; my = e.clientY;
-      dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
-    });
+    addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; });
     (function render() {
-      rx = lerp(rx, mx, 0.18); ry = lerp(ry, my, 0.18);
-      ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+      // horizon and disk share one eased position so they stay concentric —
+      // the slight lag behind the real pointer is what sells the mass
+      rx = lerp(rx, mx, 0.3); ry = lerp(ry, my, 0.3);
+      const t = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+      dot.style.transform = t;
+      ring.style.transform = t;
       requestAnimationFrame(render);
     })();
     const hoverSel = 'a, button, input, [data-magnetic], [data-tilt], .chip, .tag, .term-chip';
-    document.addEventListener('mouseover', (e) => { if (e.target.closest(hoverSel)) ring.classList.add('hovering'); });
-    document.addEventListener('mouseout', (e) => { if (e.target.closest(hoverSel)) ring.classList.remove('hovering'); });
+    document.addEventListener('mouseover', (e) => {
+      if (!e.target.closest(hoverSel)) return;
+      ring.classList.add('hovering'); dot.classList.add('hovering');
+    });
+    document.addEventListener('mouseout', (e) => {
+      if (!e.target.closest(hoverSel)) return;
+      ring.classList.remove('hovering'); dot.classList.remove('hovering');
+    });
   } else if (dot && ring) {
     dot.style.display = 'none'; ring.style.display = 'none';
   }

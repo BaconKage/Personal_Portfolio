@@ -31,11 +31,15 @@
   function BlackHoleSky(canvas) {
     const ctx = canvas.getContext('2d', { alpha: false });
     let w = 0, h = 0, dpr = 1;
-    let stars = [], planets = [], neb = null;
+    let stars = [], neb = null;
     let raf = null, running = false, last = 0;
 
     const mouse = { x: -9999, y: -9999, active: false };
-    const hole = { x: 0, y: 0, R: 96, targetR: 96, spin: 0 };
+    /* Einstein radius. Small on purpose — the hole rides with the pointer, so
+       the distortion should be tight and local rather than filling the screen.
+       Deflection falls off as Rₑ²/r: ~27px at 100px out, ~7px at 400px. */
+    const R_BASE = 52;
+    const hole = { x: 0, y: 0, R: R_BASE, targetR: R_BASE, spin: 0 };
 
     /* ── palette ── */
     const STAR_TINTS = [
@@ -43,15 +47,31 @@
       [255, 208, 190], [214, 233, 255],
     ];
 
-    const PLANETS = [
-      { a: 96,  e: 0.10, sp: 0.00042, r: 3.4, c: '#c9a27a', ring: false, ph: 0.4 },
-      { a: 152, e: 0.06, sp: 0.00029, r: 5.2, c: '#7fb0e8', ring: false, ph: 2.1 },
-      { a: 214, e: 0.13, sp: 0.00020, r: 4.1, c: '#e08b6a', ring: false, ph: 3.7 },
-      { a: 292, e: 0.08, sp: 0.00014, r: 8.0, c: '#d9c08a', ring: true,  ph: 5.2 },
-      { a: 372, e: 0.05, sp: 0.00010, r: 6.2, c: '#8fd6d0', ring: false, ph: 1.2 },
+    /* Two systems: a large foreground one anchored bottom-right, and a small
+       distant one top-left for depth. Orbits are deliberately wider than the
+       viewport — you see arcs sweeping off-screen, which reads as scale. */
+    const SYSTEMS = [
+      {
+        cx: 0.70, cy: 0.80, scale: 1, sun: 120, dim: 1,
+        planets: [
+          { a: 210, e: 0.10, sp: 0.00034, r: 9,    c: '#c9a27a', ring: false, ph: 0.4 },
+          { a: 350, e: 0.07, sp: 0.00023, r: 15,   c: '#7fb0e8', ring: false, ph: 2.1 },
+          { a: 500, e: 0.13, sp: 0.00016, r: 11.5, c: '#e08b6a', ring: false, ph: 3.7 },
+          { a: 670, e: 0.08, sp: 0.00011, r: 24,   c: '#d9c08a', ring: true,  ph: 5.2 },
+          { a: 860, e: 0.05, sp: 0.00008, r: 17,   c: '#8fd6d0', ring: false, ph: 1.2 },
+        ],
+      },
+      {
+        cx: 0.16, cy: 0.20, scale: 1, sun: 46, dim: 0.5,
+        planets: [
+          { a: 92,  e: 0.09, sp: 0.00047, r: 4.4, c: '#b9c7e6', ring: false, ph: 1.9 },
+          { a: 158, e: 0.05, sp: 0.00031, r: 6.8, c: '#d6a98c', ring: false, ph: 4.4 },
+          { a: 246, e: 0.11, sp: 0.00021, r: 5.2, c: '#9ad4c4', ring: false, ph: 0.7 },
+        ],
+      },
     ];
 
-    const sys = { x: 0, y: 0 };   // planetary system barycentre
+    let systems = [];
 
     function build() {
       const area = w * h;
@@ -69,9 +89,12 @@
         };
       });
 
-      sys.x = w * 0.74;
-      sys.y = h * 0.72;
-      planets = PLANETS.map((p) => ({ ...p }));
+      systems = SYSTEMS.map((s) => ({
+        ...s,
+        x: w * s.cx,
+        y: h * s.cy,
+        planets: s.planets.map((p) => ({ ...p })),
+      }));
 
       // nebula is static — bake it once instead of re-filling gradients per frame
       neb = document.createElement('canvas');
@@ -136,7 +159,7 @@
       };
     }
 
-    const horizon = () => hole.R * 0.38;
+    const horizon = () => hole.R * 0.30;
 
     function step(dt) {
       const f = clamp(dt / 16.667, 0.3, 3);
@@ -149,22 +172,24 @@
         tx = w * 0.5 + Math.cos(t * 0.000112) * w * 0.24;
         ty = h * 0.46 + Math.sin(t * 0.000147) * h * 0.20;
       }
-      hole.x = lerp(hole.x, tx, clamp(0.055 * f, 0, 1));
-      hole.y = lerp(hole.y, ty, clamp(0.055 * f, 0, 1));
-      hole.R = lerp(hole.R, hole.targetR, clamp(0.06 * f, 0, 1));
-      hole.targetR = lerp(hole.targetR, 96, clamp(0.02 * f, 0, 1));
+      // tight follow: the hole belongs to the pointer, not trailing behind it
+      const k = clamp((mouse.active ? 0.34 : 0.05) * f, 0, 1);
+      hole.x = lerp(hole.x, tx, k);
+      hole.y = lerp(hole.y, ty, k);
+      hole.R = lerp(hole.R, hole.targetR, clamp(0.08 * f, 0, 1));
+      hole.targetR = lerp(hole.targetR, R_BASE, clamp(0.03 * f, 0, 1));
       hole.spin += 0.0016 * f;
 
-      for (const p of planets) p.ph += p.sp * dt;
+      for (const s of systems) for (const p of s.planets) p.ph += p.sp * dt;
       for (const s of stars) s.tw += s.tws * dt;
     }
 
     /* orbital position, flattened to read as a tilted plane */
-    function orbitPoint(p, phase) {
+    function orbitPoint(sysm, p, phase) {
       const a = p.a, b = p.a * (1 - p.e);
       return {
-        x: sys.x + Math.cos(phase) * a,
-        y: sys.y + Math.sin(phase) * b * 0.34,
+        x: sysm.x + Math.cos(phase) * a,
+        y: sysm.y + Math.sin(phase) * b * 0.34,
       };
     }
 
@@ -214,118 +239,94 @@
         }
       }
 
-      /* ── the system's star ── */
-      const sunL = lens(sys.x, sys.y);
-      if (sunL) {
-        const g = ctx.createRadialGradient(sunL.px, sunL.py, 0, sunL.px, sunL.py, 46);
-        g.addColorStop(0, 'rgba(255,240,205,0.95)');
-        g.addColorStop(0.22, 'rgba(255,197,120,0.5)');
-        g.addColorStop(1, 'rgba(255,150,60,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(sunL.px, sunL.py, 46, 0, 6.2832);
-        ctx.fill();
-      }
-
-      /* ── orbits, traced through the lens ──
-         Each ring is walked as a polyline and every vertex is displaced,
-         so the orbits visibly bend around the hole. The path breaks near
-         the axis where the two images diverge. */
-      ctx.lineWidth = 1;
-      for (const p of planets) {
-        ctx.strokeStyle = 'rgba(150,170,220,0.14)';
-        ctx.beginPath();
-        let penDown = false;
-        for (let i = 0; i <= 96; i++) {
-          const pt = orbitPoint(p, (i / 96) * 6.2832);
-          const L = lens(pt.x, pt.y);
-          if (!L || L.u < 0.34) { penDown = false; continue; }
-          if (!penDown) { ctx.moveTo(L.px, L.py); penDown = true; }
-          else ctx.lineTo(L.px, L.py);
-        }
-        ctx.stroke();
-      }
-
-      /* ── planets ── */
-      for (const p of planets) {
-        const pt = orbitPoint(p, p.ph);
-        const L = lens(pt.x, pt.y);
-        if (!L) continue;
-        const sc = clamp(L.mp, 0.6, 3.2);
-        const pr = p.r * Math.min(sc, 2.1);
-
-        if (p.ring) {
-          ctx.save();
-          ctx.translate(L.px, L.py);
-          ctx.rotate(-0.42);
-          ctx.scale(1, 0.28);
-          ctx.strokeStyle = 'rgba(226,208,166,0.55)';
-          ctx.lineWidth = pr * 0.32;
+      /* ── systems: star, lensed orbits, planets ── */
+      for (const sm of systems) {
+        const sunL = lens(sm.x, sm.y);
+        if (sunL) {
+          const g = ctx.createRadialGradient(sunL.px, sunL.py, 0, sunL.px, sunL.py, sm.sun);
+          g.addColorStop(0, `rgba(255,242,210,${0.95 * sm.dim})`);
+          g.addColorStop(0.14, `rgba(255,206,132,${0.55 * sm.dim})`);
+          g.addColorStop(0.4, `rgba(255,160,70,${0.16 * sm.dim})`);
+          g.addColorStop(1, 'rgba(255,140,60,0)');
+          ctx.fillStyle = g;
           ctx.beginPath();
-          ctx.arc(0, 0, pr * 2.05, 0, 6.2832);
-          ctx.stroke();
-          ctx.restore();
+          ctx.arc(sunL.px, sunL.py, sm.sun, 0, 6.2832);
+          ctx.fill();
         }
 
-        ctx.beginPath();
-        ctx.arc(L.px, L.py, pr, 0, 6.2832);
-        ctx.fillStyle = p.c;
-        ctx.fill();
-        // crescent terminator, lit from the system's star
-        const ang = Math.atan2(L.py - (sunL ? sunL.py : sys.y), L.px - (sunL ? sunL.px : sys.x));
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(L.px, L.py, pr, 0, 6.2832);
-        ctx.clip();
-        ctx.beginPath();
-        ctx.arc(L.px + Math.cos(ang) * pr * 0.72, L.py + Math.sin(ang) * pr * 0.72, pr, 0, 6.2832);
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        ctx.fill();
-        ctx.restore();
+        /* Orbits are walked as polylines with every vertex displaced, so the
+           rings visibly bend around the hole. The path breaks near the axis
+           where the two images diverge. */
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = `rgba(150,170,220,${0.16 * sm.dim})`;
+        for (const p of sm.planets) {
+          ctx.beginPath();
+          let penDown = false;
+          const steps = 128;
+          for (let i = 0; i <= steps; i++) {
+            const pt = orbitPoint(sm, p, (i / steps) * 6.2832);
+            const L = lens(pt.x, pt.y);
+            if (!L || L.u < 0.34) { penDown = false; continue; }
+            if (!penDown) { ctx.moveTo(L.px, L.py); penDown = true; }
+            else ctx.lineTo(L.px, L.py);
+          }
+          ctx.stroke();
+        }
+
+        for (const p of sm.planets) {
+          const pt = orbitPoint(sm, p, p.ph);
+          const L = lens(pt.x, pt.y);
+          if (!L) continue;
+          const pr = p.r * clamp(L.mp, 0.6, 2.1);
+
+          if (p.ring) {
+            ctx.save();
+            ctx.translate(L.px, L.py);
+            ctx.rotate(-0.42);
+            ctx.scale(1, 0.26);
+            ctx.strokeStyle = `rgba(226,208,166,${0.5 * sm.dim})`;
+            ctx.lineWidth = pr * 0.3;
+            ctx.beginPath();
+            ctx.arc(0, 0, pr * 2.1, 0, 6.2832);
+            ctx.stroke();
+            ctx.restore();
+          }
+
+          ctx.globalAlpha = sm.dim;
+          ctx.beginPath();
+          ctx.arc(L.px, L.py, pr, 0, 6.2832);
+          ctx.fillStyle = p.c;
+          ctx.fill();
+          // crescent terminator, lit from this system's star
+          const ax = sunL ? sunL.px : sm.x, ay = sunL ? sunL.py : sm.y;
+          const ang = Math.atan2(L.py - ay, L.px - ax);
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(L.px, L.py, pr, 0, 6.2832);
+          ctx.clip();
+          ctx.beginPath();
+          ctx.arc(L.px + Math.cos(ang) * pr * 0.7, L.py + Math.sin(ang) * pr * 0.7, pr, 0, 6.2832);
+          ctx.fillStyle = 'rgba(0,0,0,0.58)';
+          ctx.fill();
+          ctx.restore();
+          ctx.globalAlpha = 1;
+        }
       }
 
-      /* ── accretion disk ── */
-      ctx.save();
-      ctx.translate(hole.x, hole.y);
-      ctx.rotate(-0.36);
-      ctx.scale(1, 0.3);
-      const disk = ctx.createRadialGradient(0, 0, Rh * 1.1, 0, 0, hole.R * 2.5);
-      disk.addColorStop(0, 'rgba(255,240,220,0)');
-      disk.addColorStop(0.16, 'rgba(255,196,120,0.62)');
-      disk.addColorStop(0.42, 'rgba(255,128,52,0.36)');
-      disk.addColorStop(0.75, 'rgba(190,60,30,0.13)');
-      disk.addColorStop(1, 'rgba(120,30,20,0)');
-      ctx.fillStyle = disk;
-      ctx.beginPath();
-      ctx.arc(0, 0, hole.R * 2.5, 0, 6.2832);
-      ctx.fill();
-      // Doppler beaming — the side rotating toward us runs brighter
-      const beam = ctx.createLinearGradient(-hole.R * 2.2, 0, hole.R * 2.2, 0);
-      const bp = 0.5 + 0.5 * Math.sin(hole.spin);
-      beam.addColorStop(0, `rgba(255,255,255,${0.16 * bp})`);
-      beam.addColorStop(0.5, 'rgba(255,255,255,0)');
-      beam.addColorStop(1, `rgba(255,255,255,${0.16 * (1 - bp)})`);
-      ctx.fillStyle = beam;
-      ctx.beginPath();
-      ctx.arc(0, 0, hole.R * 2.5, 0, 6.2832);
-      ctx.fill();
-      ctx.restore();
-
-      /* ── photon ring + event horizon ── */
-      const ring = ctx.createRadialGradient(hole.x, hole.y, Rh * 0.9, hole.x, hole.y, Rh * 1.5);
-      ring.addColorStop(0, 'rgba(255,214,150,0)');
-      ring.addColorStop(0.42, 'rgba(255,226,178,0.85)');
-      ring.addColorStop(0.62, 'rgba(255,168,80,0.28)');
-      ring.addColorStop(1, 'rgba(255,140,60,0)');
-      ctx.fillStyle = ring;
-      ctx.beginPath();
-      ctx.arc(hole.x, hole.y, Rh * 1.5, 0, 6.2832);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(hole.x, hole.y, Rh, 0, 6.2832);
-      ctx.fillStyle = '#000';
-      ctx.fill();
+      /* The horizon and accretion disk are drawn by the cursor element, not
+         here — it rides above the text so the hole stays visible everywhere.
+         Only a faint bend-glow is left, to mark the spot while the pointer
+         is off-window and the hole is drifting on its own. */
+      if (!mouse.active) {
+        const glow = ctx.createRadialGradient(hole.x, hole.y, Rh * 0.6, hole.x, hole.y, Rh * 2.2);
+        glow.addColorStop(0, 'rgba(0,0,0,0.9)');
+        glow.addColorStop(0.5, 'rgba(255,190,120,0.22)');
+        glow.addColorStop(1, 'rgba(255,150,70,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(hole.x, hole.y, Rh * 2.2, 0, 6.2832);
+        ctx.fill();
+      }
     }
 
     function frame(now) {
@@ -347,7 +348,9 @@
       /* one composed still, for when motion is switched off */
       settle() { for (let i = 0; i < 40; i++) step(16); draw(); },
       /* a click briefly deepens the well */
-      pulse() { hole.targetR = Math.min(hole.targetR + 62, 190); },
+      pulse() { hole.targetR = Math.min(hole.targetR + 34, 120); },
+      /* the text lens reads this so both warps share one centre and radius */
+      lensState() { return { x: hole.x, y: hole.y, R: hole.R, live: mouse.active }; },
       resize,
       get running() { return running; },
     };

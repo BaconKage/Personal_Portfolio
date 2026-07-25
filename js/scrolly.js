@@ -29,6 +29,21 @@
   const skyCanvas = $('#skyCanvas');
   const sky = skyCanvas && window.BlackHoleSky ? window.BlackHoleSky(skyCanvas) : null;
 
+  /* The same lens applied to the hero copy, so the hole warps words as well
+     as stars. Driven off the sky's hole so both share one centre. */
+  (function textWarp() {
+    if (!sky || !window.TextLens || isCoarse) return;
+    if (!$('[data-warp]')) return;
+    const lens = window.TextLens({ radius: 52 });
+    let raf;
+    const tick = (now) => {
+      const s = sky.lensState();
+      lens.update(s.x, s.y, s.live && motionOn(), now);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  })();
+
   const themed = $$('[data-field]');
   let currentSection = null;
 
