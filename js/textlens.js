@@ -65,32 +65,45 @@
       return cv.toDataURL('image/png');
     }
 
-    /* ── filter chain ── */
+    /* ── filter chain ──
+       Each target gets its own filter. They share the texture, but the patch
+       has to sit at different coordinates in each element's local space, so a
+       single feImage cannot serve more than one warped element at a time. */
+    const href = texture();
     const svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('aria-hidden', 'true');
-    svg.setAttribute('width', '0');
-    svg.setAttribute('height', '0');
     svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
-    svg.innerHTML =
-      '<defs><filter id="bhWarp" x="-30%" y="-30%" width="160%" height="160%"' +
-      ' primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">' +
-      '<feFlood flood-color="rgb(128,128,0)" flood-opacity="1" result="flat"/>' +
-      '<feImage result="patch" preserveAspectRatio="none"/>' +
-      '<feMerge result="map"><feMergeNode in="flat"/><feMergeNode in="patch"/></feMerge>' +
-      '<feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="G"/>' +
-      '</filter></defs>';
+    const defs = document.createElementNS(NS, 'defs');
+    svg.appendChild(defs);
     document.body.appendChild(svg);
 
-    const feImage = svg.querySelector('feImage');
-    const feDisp = svg.querySelector('feDisplacementMap');
-    feDisp.setAttribute('scale', String(SCALE));
-    feImage.setAttribute('width', String(MAPR * 2));
-    feImage.setAttribute('height', String(MAPR * 2));
-    const href = texture();
-    feImage.setAttribute('href', href);
-    feImage.setAttributeNS(XLINK, 'xlink:href', href);   // older engines
+    const targets = Array.from(document.querySelectorAll('[data-warp]')).map((el, i) => {
+      const id = 'bhWarp' + i;
+      const filter = document.createElementNS(NS, 'filter');
+      filter.setAttribute('id', id);
+      filter.setAttribute('x', '-30%');
+      filter.setAttribute('y', '-30%');
+      filter.setAttribute('width', '160%');
+      filter.setAttribute('height', '160%');
+      filter.setAttribute('primitiveUnits', 'userSpaceOnUse');
+      filter.setAttribute('color-interpolation-filters', 'sRGB');
+      filter.innerHTML =
+        '<feFlood flood-color="rgb(128,128,0)" flood-opacity="1" result="flat"/>' +
+        '<feImage result="patch" preserveAspectRatio="none"/>' +
+        '<feMerge result="map"><feMergeNode in="flat"/><feMergeNode in="patch"/></feMerge>' +
+        '<feDisplacementMap in="SourceGraphic" in2="map" xChannelSelector="R" yChannelSelector="G"/>';
+      defs.appendChild(filter);
 
-    const targets = Array.from(document.querySelectorAll('[data-warp]'));
+      const feImage = filter.querySelector('feImage');
+      feImage.setAttribute('width', String(MAPR * 2));
+      feImage.setAttribute('height', String(MAPR * 2));
+      feImage.setAttribute('href', href);
+      feImage.setAttributeNS(XLINK, 'xlink:href', href);   // older engines
+      filter.querySelector('feDisplacementMap').setAttribute('scale', String(SCALE));
+
+      return { el, feImage, url: 'url(#' + id + ')', on: false };
+    });
+
     let active = false, disabled = false;
 
     /* Filters this size are cheap on some machines and not on others, and
@@ -109,10 +122,16 @@
       lastT = now;
     }
 
+    function detach(t) {
+      if (!t.on) return;
+      t.on = false;
+      t.el.style.filter = '';
+    }
+
     function off() {
       if (!active) return;
       active = false;
-      targets.forEach((t) => t.classList.remove('warped'));
+      targets.forEach(detach);
     }
 
     function update(hx, hy, live, now) {
@@ -121,17 +140,16 @@
 
       let any = false;
       for (const t of targets) {
-        const r = t.getBoundingClientRect();
-        if (r.width < 1) continue;
-        const near =
+        const r = t.el.getBoundingClientRect();
+        const near = r.width > 1 &&
           hx > r.left - MAPR && hx < r.right + MAPR &&
           hy > r.top - MAPR && hy < r.bottom + MAPR;
-        t.classList.toggle('warped', near);
-        if (!near) continue;
+        if (!near) { detach(t); continue; }
         any = true;
-        // feImage sits in the filtered element's own user space
-        feImage.setAttribute('x', String(hx - r.left - MAPR));
-        feImage.setAttribute('y', String(hy - r.top - MAPR));
+        // the patch sits in this element's own user space, hence one per target
+        t.feImage.setAttribute('x', String(hx - r.left - MAPR));
+        t.feImage.setAttribute('y', String(hy - r.top - MAPR));
+        if (!t.on) { t.on = true; t.el.style.filter = t.url; }
       }
       active = any;
       budget(now);

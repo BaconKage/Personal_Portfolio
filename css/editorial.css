@@ -1652,6 +1652,7 @@ html.fx-off .step { opacity: 1; transform: none; }
 html.fx-off .mh-scroll-line::after,
 html.fx-off .pin-hint { animation: none; }
 
-/* text under the lens — the filter is attached only while the hole is
-   near enough to matter, so type stays crisp the rest of the time */
-.warped { filter: url(#bhWarp); }
+/* The lens attaches filters inline, per target, only while the hole is close
+   enough to matter — everything stays crisp the rest of the time. The dock is
+   deliberately not a target: it is the navigation and must stay clickable. */
+[data-warp] { will-change: filter; }
