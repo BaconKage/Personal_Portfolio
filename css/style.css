@@ -9,12 +9,18 @@
   --surface: rgba(255, 255, 255, 0.035);
   --surface-hover: rgba(255, 255, 255, 0.07);
   --border: rgba(255, 255, 255, 0.09);
-  --border-bright: rgba(168, 85, 247, 0.5);
-  --text: #ece9f6;
-  --text-dim: #a29bb8;
-  --text-faint: #6b6482;
-  --violet: #a855f7;
-  --cyan: #22d3ee;
+  --border-bright: color-mix(in oklab, var(--accent-a) 50%, transparent);
+  --text: #f2f0f8;
+  /* body copy and labels sit over a live canvas, so both were lifted a
+     step: --text-dim now clears 9:1 on --bg and --text-faint clears 5:1,
+     which is what makes the small mono metadata actually readable. */
+  --text-dim: #c2bcd2;
+  --text-faint: #948da8;
+  /* --violet / --cyan are aliases onto the live section accents, so the
+     entire component library recolours as you scroll. editorial.css
+     registers the accents with @property to make them interpolate. */
+  --violet: var(--accent-a);
+  --cyan: var(--accent-b);
   --pink: #ec4899;
   --gold: #fbbf24;
   --grad: linear-gradient(100deg, var(--violet), var(--cyan));

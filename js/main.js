@@ -1,7 +1,11 @@
 /* ═══════════════════════════════════════════════════════
    SHUBHANG VARDA — PORTFOLIO · main.js
-   preloader · cursor · aurora shader · particles · reveals
-   tilt · magnetic · terminal · command palette · dot-nav
+   preloader · cursor · reveals · counters · typewriter
+   stack matrix · magnetic · terminal · command palette
+   ───────────────────────────────────────────────────────
+   The generative background lives in field.js; everything
+   scroll-driven lives in scrolly.js. This file owns the
+   chrome and the effects manager both of them register with.
    ═══════════════════════════════════════════════════════ */
 
 (() => {
@@ -43,18 +47,251 @@
       this.handlers.forEach((h) => { try { (on ? h.enable : h.disable)(); } catch (e) {} });
     },
   };
+  // field.js / scrolly.js load around this file and register through here
+  window.__fxRegister = (h) => FX.register(h);
+  window.__fxOn = () => motionEnabled;
 
-  /* ─────────── PRELOADER ─────────── */
-  const preloader = $('#preloader');
-  const hidePreloader = () => {
-    if (!preloader || preloader.classList.contains('done')) return;
-    preloader.classList.add('done');
-    document.body.style.overflow = '';
-    setTimeout(() => preloader.remove(), 800);
-  };
-  document.body.style.overflow = 'hidden';
-  window.addEventListener('load', () => setTimeout(hidePreloader, prefersReduced ? 200 : 1900));
-  setTimeout(hidePreloader, 4200);
+  /* ─────────── BOOT SEQUENCE ───────────
+     Start gate → compile log → wipe into the page. The hero's entrance
+     animation is paused until this finishes (see html.booted in
+     editorial.css) so the two never play over each other. */
+  (function boot() {
+    const el = $('#boot');
+    if (!el) { de.classList.add('booted'); return; }
+
+    const startBtn = $('#bootStart');
+    const skipBtn = $('#bootSkip');
+    const hint = $('#bootHint');
+    const codeEl = $('#bootCode');
+    const logEl = $('#bootLog');
+    const bar = $('#bootBar');
+    const statusEl = $('#bootStatus');
+
+    let finished = false;
+    document.body.style.overflow = 'hidden';
+
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      el.classList.add('done');
+      de.classList.add('booted');
+      document.body.style.overflow = '';
+      try { sessionStorage.setItem('booted', '1'); } catch (e) {}
+      setTimeout(() => el.remove(), 1000);
+    };
+
+    // Returning within the same session shouldn't mean sitting through
+    // the intro again — but a fresh visitor always gets it.
+    let seen = false;
+    try { seen = sessionStorage.getItem('booted') === '1'; } catch (e) {}
+    if (seen || !motionEnabled || prefersReduced) {
+      el.classList.add('instant');
+      finish();
+      return;
+    }
+
+    /* The source that gets typed out. It is a genuine, readable summary of
+       how this page actually works — the field really does hold ~214 nodes
+       and every section really does re-theme the page on enter. Anyone who
+       stops to read it learns something true. */
+    const SRC = [
+      "// portfolio.boot.ts — what you're about to look at",
+      "import { NeuralField } from './field';",
+      "import { sections } from './content';",
+      '',
+      'async function boot() {',
+      "  const field = NeuralField('#fieldCanvas');",
+      "  await field.warm({ nodes: 214, layout: 'net' });",
+      '',
+      '  for (const s of sections) {',
+      '    // each section repaints the page and reshapes the network',
+      "    s.on('enter', () => field.morph(s.layout, s.palette));",
+      '  }',
+      '',
+      '  return render(sections);',
+      '}',
+      '',
+      "boot().then(() => ready('shubhang srinivas varda'));",
+    ].join('\n');
+
+    /* Log entries fire as the typing passes the line they belong to. */
+    const LOG_AT = {
+      2: ['content', '8 sections · 6 products'],
+      6: ['field', '214 nodes · 60fps'],
+      10: ['sections', 'observers attached'],
+      13: ['render', 'web · mobile · api'],
+      16: ['ready', 'welcome'],
+    };
+
+    /* Minimal TypeScript tokenizer — order matters, first match wins. */
+    const RULES = [
+      [/^\/\/[^\n]*/, 'com'],
+      [/^'[^']*'/, 'str'],
+      [/^\b(?:import|from|export|const|let|async|await|function|return|for|of|new|then|null|true|false)\b/, 'kw'],
+      [/^\b\d+\b/, 'num'],
+      [/^[A-Za-z_$][\w$]*(?=\s*\()/, 'fn'],
+      [/^[A-Z][\w$]*/, 'cls'],
+      [/^[A-Za-z_$][\w$]*/, 'id'],
+      [/^\s+/, 'ws'],
+      [/^[^\s\w]/, 'op'],
+    ];
+    const tokenize = (src) => {
+      const out = [];
+      let i = 0;
+      while (i < src.length) {
+        const rest = src.slice(i);
+        let hit = null;
+        for (const [re, cls] of RULES) {
+          const m = re.exec(rest);
+          if (m) { hit = { cls, text: m[0] }; break; }
+        }
+        if (!hit) hit = { cls: 'op', text: rest[0] };
+        out.push(hit);
+        i += hit.text.length;
+      }
+      return out;
+    };
+
+    const addLog = (key, val) => {
+      if (!logEl) return;
+      const row = document.createElement('div');
+      row.className = 'boot-log-row';
+      row.innerHTML =
+        '<span class="boot-log-k"></span><span class="boot-log-v"></span>';
+      row.querySelector('.boot-log-k').textContent = key;
+      row.querySelector('.boot-log-v').textContent = val;
+      logEl.appendChild(row);
+      requestAnimationFrame(() => row.classList.add('in'));
+    };
+
+    const run = () => {
+      if (el.classList.contains('running')) return;
+      el.classList.add('running');
+      if (statusEl) statusEl.textContent = 'building…';
+      // the whole sequence lands around 2.8s — long enough to read as a real
+      // build, short enough that nobody bounces waiting for it
+      if (bar) bar.style.transitionDuration = '2900ms';
+      requestAnimationFrame(() => { if (bar) bar.style.transform = 'scaleX(1)'; });
+
+      const tokens = tokenize(SRC);
+      const frag = document.createDocumentFragment();
+      const spans = tokens.map((t) => {
+        const s = document.createElement('span');
+        s.className = 'tk tk-' + t.cls;
+        frag.appendChild(s);
+        return s;
+      });
+      const caret = document.createElement('span');
+      caret.className = 'boot-caret';
+      frag.appendChild(caret);
+      codeEl.appendChild(frag);
+
+      let ti = 0, ci = 0, line = 0;
+      const step = () => {
+        if (finished) return;
+        if (ti >= tokens.length) {
+          // the final line has no trailing newline, so flush its entry here
+          const last = LOG_AT[line];
+          if (last) addLog(last[0], last[1]);
+          if (statusEl) statusEl.textContent = 'ready';
+          caret.classList.add('done');
+          setTimeout(finish, 450);
+          return;
+        }
+        const tk = tokens[ti];
+
+        // whitespace lands whole; a newline is where the log ticks over
+        if (tk.cls === 'ws') {
+          spans[ti].textContent = tk.text;
+          const breaks = (tk.text.match(/\n/g) || []).length;
+          for (let n = 0; n < breaks; n++) {
+            const entry = LOG_AT[line];
+            if (entry) addLog(entry[0], entry[1]);
+            line++;
+          }
+          ti++; ci = 0;
+          codeEl.scrollTop = codeEl.scrollHeight;
+          return setTimeout(step, breaks ? 50 : 0);
+        }
+
+        ci = Math.min(ci + 2, tk.text.length);   // two glyphs a tick
+        spans[ti].textContent = tk.text.slice(0, ci);
+        if (ci >= tk.text.length) { ti++; ci = 0; }
+        setTimeout(step, 8);
+      };
+      step();
+    };
+
+    startBtn?.addEventListener('click', run);
+    skipBtn?.addEventListener('click', finish);
+    window.addEventListener('keydown', function onKey(e) {
+      if (finished) return;
+      if (e.key === 'Enter' || e.key === ' ') {
+        if (!el.classList.contains('running')) { e.preventDefault(); run(); }
+      } else if (e.key === 'Escape') {
+        finish();
+      }
+    });
+
+    setTimeout(() => startBtn?.focus(), 120);
+    if (hint) setTimeout(() => hint.classList.add('show'), 900);
+
+    // never trap someone behind a stalled intro
+    setTimeout(() => { if (!el.classList.contains('running')) return; finish(); }, 12000);
+  })();
+
+  /* ─────────── BOOT BACKDROP ─────────── */
+  (function bootField() {
+    const cv = $('#bootCanvas');
+    if (!cv || !motionEnabled) return;
+    const ctx = cv.getContext('2d');
+    let w = 0, h = 0, pts = [], raf, t0 = performance.now();
+
+    const size = () => {
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      w = cv.clientWidth; h = cv.clientHeight;
+      if (w < 2 || h < 2) return;
+      cv.width = w * dpr; cv.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      pts = Array.from({ length: 46 }, () => ({
+        x: Math.random() * w, y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3,
+      }));
+    };
+    size();
+    addEventListener('resize', size);
+
+    const frame = () => {
+      if (!document.getElementById('boot')) { cancelAnimationFrame(raf); return; }
+      const age = Math.min((performance.now() - t0) / 2600, 1);
+      ctx.clearRect(0, 0, w, h);
+      for (const p of pts) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
+      }
+      for (let i = 0; i < pts.length; i++) {
+        for (let j = i + 1; j < pts.length; j++) {
+          const d = Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y);
+          if (d > 170) continue;
+          ctx.strokeStyle = `rgba(140,110,240,${(1 - d / 170) * 0.3 * age})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(pts[i].x, pts[i].y);
+          ctx.lineTo(pts[j].x, pts[j].y);
+          ctx.stroke();
+        }
+      }
+      for (const p of pts) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.5, 0, 6.2832);
+        ctx.fillStyle = `rgba(190,175,255,${0.6 * age})`;
+        ctx.fill();
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    frame();
+  })();
 
   /* ─────────── SPLIT HERO NAME INTO LETTERS ─────────── */
   $$('.hero-word').forEach((word) => {
@@ -69,16 +306,45 @@
   });
 
   /* ─────────── LIVE BENGALURU CLOCK ─────────── */
-  const clockEl = $('#istClock');
-  if (clockEl) {
+  // both the menu bar and the identity window carry a clock
+  const clocks = $$('[data-clock]');
+  if (clocks.length) {
     const tick = () => {
-      clockEl.textContent = new Date().toLocaleTimeString('en-GB', {
+      const t = new Date().toLocaleTimeString('en-GB', {
         timeZone: 'Asia/Kolkata', hour12: false,
       });
+      clocks.forEach((el) => { el.textContent = t; });
     };
     tick();
     setInterval(tick, 1000);
   }
+
+  /* ─────────── CAFFEINE METER ───────────
+     One timer drives both the bar and the readout so they can't drift apart,
+     which a CSS animation plus a JS counter inevitably would. */
+  (function battery() {
+    const fill = $('#battFill');
+    const pct = $('#battPct');
+    if (!fill || !pct) return;
+    const CYCLE = 7000, RAMP = 5400;
+    const paint = (p, dip) => {
+      fill.style.width = (p * 100).toFixed(1) + '%';
+      fill.style.opacity = dip ? '0.25' : '1';
+      pct.textContent = Math.round(p * 100) + '%';
+    };
+    const tick = (force) => {
+      // skip the work while the tab is hidden, but never leave it unpainted
+      if (document.hidden && !force) return;
+      const t = Date.now() % CYCLE;
+      const p = t < RAMP ? 1 - Math.pow(1 - t / RAMP, 2) : 1;   // eases as it tops up
+      paint(p, t > CYCLE - 260);   // brief dip hides the reset to empty
+    };
+
+    if (!motionEnabled) { paint(1, false); return; }
+    tick(true);
+    setInterval(tick, 90);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(true); });
+  })();
 
   /* ─────────── CUSTOM CURSOR ─────────── */
   const dot = $('#cursorDot');
@@ -208,10 +474,10 @@
     }
   }
 
-  /* ─────────── SKILL LOGO TILES ─────────── */
+  /* ─────────── STACK MATRIX ─────────── */
   (function skills() {
-    const grids = $$('.skill-logos');
-    if (!grids.length) return;
+    const grid = $('#stackMatrix');
+    if (!grid) return;
     // inline SVGs for concepts without a brand logo (inherit currentColor)
     const S = {
       api: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 7 3 12 8 17"/><polyline points="16 7 21 12 16 17"/><line x1="13" y1="4" x2="11" y2="20"/></svg>',
@@ -275,34 +541,56 @@
         { n: 'Affective AI', svg: S.heart },
       ],
     };
-    const mono = (n) => `<span class="skill-mono">${n.slice(0, 2)}</span>`;
-    grids.forEach((grid) => {
-      const items = DATA[grid.dataset.cat] || [];
-      items.forEach((it, i) => {
-        const tile = document.createElement('div');
-        tile.className = 'skill-tile';
-        const logo = document.createElement('div');
-        logo.className = 'skill-logo';
-        logo.style.animationDelay = (-(i % 6) * 0.6).toFixed(2) + 's';
-        if (it.si) {
-          const img = new Image();
-          img.alt = it.n; img.decoding = 'async';
-          img.onerror = () => { logo.innerHTML = mono(it.n); };
-          img.src = `assets/icons/${it.si}.svg`;
-          // safety net for offline/blocked environments (local files load instantly)
-          setTimeout(() => { if (!img.complete || img.naturalWidth === 0) logo.innerHTML = mono(it.n); }, 6000);
-          logo.appendChild(img);
-        } else {
-          logo.innerHTML = it.svg;
-        }
-        const label = document.createElement('span');
-        label.className = 'skill-label';
-        label.textContent = it.n;
-        tile.appendChild(logo);
-        tile.appendChild(label);
-        grid.appendChild(tile);
+    // category → legend swatch, so a cell always declares which layer it belongs to
+    const CAT = { fullstack: '#a855f7', ai: '#22d3ee', data: '#10b981', craft: '#fbbf24' };
+    const mono = (n) => `<span class="mcell-mono">${n.slice(0, 2)}</span>`;
+
+    // Interleave the categories so the matrix reads as a mixed weight grid
+    // rather than four stacked blocks — the row/column wiring is only
+    // interesting when neighbours come from different disciplines.
+    const cats = Object.keys(DATA);
+    const cursors = cats.map(() => 0);
+    const cells = [];
+    let remaining = cats.reduce((n, c) => n + DATA[c].length, 0);
+    while (remaining > 0) {
+      cats.forEach((cat, ci) => {
+        const list = DATA[cat];
+        if (cursors[ci] >= list.length) return;
+        cells.push({ cat, it: list[cursors[ci]++] });
+        remaining--;
       });
+    }
+
+    const frag = document.createDocumentFragment();
+    cells.forEach(({ cat, it }) => {
+      const cell = document.createElement('div');
+      cell.className = 'mcell';
+      cell.style.setProperty('--cat', CAT[cat]);
+      cell.title = it.n;
+
+      const logo = document.createElement('div');
+      logo.className = 'mcell-logo';
+      if (it.si) {
+        const img = new Image();
+        img.alt = it.n; img.decoding = 'async';
+        img.onerror = () => { logo.innerHTML = mono(it.n); };
+        img.src = `assets/icons/${it.si}.svg`;
+        // safety net for offline/blocked environments (local files load instantly)
+        setTimeout(() => { if (!img.complete || img.naturalWidth === 0) logo.innerHTML = mono(it.n); }, 6000);
+        logo.appendChild(img);
+      } else {
+        logo.innerHTML = it.svg;
+      }
+
+      const label = document.createElement('span');
+      label.className = 'mcell-label';
+      label.textContent = it.n;
+
+      cell.appendChild(logo);
+      cell.appendChild(label);
+      frag.appendChild(cell);
     });
+    grid.appendChild(frag);
   })();
 
   /* ─────────── MAGNETIC ─────────── */
@@ -330,192 +618,6 @@
       el.addEventListener('mouseleave', () => { el.style.transform = ''; });
     });
   }
-
-  /* ─────────── HERO PARTICLE NETWORK ─────────── */
-  const canvas = $('#particleCanvas');
-  if (canvas && canvas.getContext) {
-    const ctx = canvas.getContext('2d');
-    let w = 0, h = 0, dpr, particles = [], raf = null, animating = false, inView = true;
-    const mouse = { x: -9999, y: -9999 };
-    const resize = () => {
-      dpr = Math.min(devicePixelRatio || 1, 2);
-      const r = canvas.getBoundingClientRect(); w = r.width; h = r.height;
-      if (w < 2 || h < 2) { requestAnimationFrame(resize); return; } // wait for layout
-      canvas.width = w * dpr; canvas.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = clamp(Math.round((w * h) / 13000), 48, 108);
-      particles = Array.from({ length: count }, () => ({
-        x: Math.random() * w, y: Math.random() * h,
-        vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35,
-        r: Math.random() * 1.8 + 1.2,
-      }));
-      if (!motionEnabled || !animating) render(false); // redraw static constellation on resize
-    };
-    const LINK = 150;
-    const render = (animate) => {
-      if (!w || !h) return;
-      if (animate) {
-        for (const p of particles) {
-          p.x += p.vx; p.y += p.vy;
-          if (p.x < 0 || p.x > w) p.vx *= -1;
-          if (p.y < 0 || p.y > h) p.vy *= -1;
-          const mdx = mouse.x - p.x, mdy = mouse.y - p.y;
-          if (Math.hypot(mdx, mdy) < 180) { p.x += mdx * 0.0022; p.y += mdy * 0.0022; }
-        }
-      }
-      ctx.clearRect(0, 0, w, h);
-      for (let i = 0; i < particles.length; i++) {
-        const a = particles[i];
-        for (let j = i + 1; j < particles.length; j++) {
-          const b = particles[j], d = Math.hypot(a.x - b.x, a.y - b.y);
-          if (d < LINK) { ctx.strokeStyle = `rgba(160,135,250,${(1 - d / LINK) * 0.55})`; ctx.lineWidth = 1.1; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
-        }
-        const dc = Math.hypot(a.x - mouse.x, a.y - mouse.y);
-        if (dc < LINK + 60) { ctx.strokeStyle = `rgba(34,211,238,${(1 - dc / (LINK + 60)) * 0.85})`; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke(); }
-      }
-      ctx.shadowBlur = 8; ctx.shadowColor = 'rgba(140, 120, 255, 0.9)';
-      for (const p of particles) {
-        const md = Math.hypot(mouse.x - p.x, mouse.y - p.y);
-        const near = md < 180 ? (1 - md / 180) : 0;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r + near * 1.6, 0, 6.283);
-        ctx.fillStyle = near > 0.05
-          ? `rgba(${Math.round(160 - near * 120)}, ${Math.round(200 + near * 30)}, 255, ${0.9 + near * 0.1})`
-          : 'rgba(210, 195, 255, 0.92)';
-        ctx.fill();
-      }
-      ctx.shadowBlur = 0;
-    };
-    const loop = () => { if (!animating) return; render(true); raf = requestAnimationFrame(loop); };
-    const startAnim = () => { if (animating || !motionEnabled || !inView) return; animating = true; loop(); };
-    const stopAnim = () => { animating = false; cancelAnimationFrame(raf); };
-    resize();
-    addEventListener('resize', resize);
-    addEventListener('mousemove', (e) => { const r = canvas.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; });
-    addEventListener('mouseout', () => { mouse.x = -9999; mouse.y = -9999; });
-    new IntersectionObserver((es) => es.forEach((en) => {
-      inView = en.isIntersecting;
-      if (!motionEnabled) return;
-      if (inView) startAnim(); else stopAnim();
-    }), { threshold: 0 }).observe(canvas);
-    FX.register({
-      enable: () => { if (inView) startAnim(); else render(false); },
-      disable: () => { stopAnim(); render(false); },
-    });
-  }
-
-  /* ─────────── WEBGL AURORA SHADER ─────────── */
-  (function aurora() {
-    const cv = $('#glCanvas');
-    if (!cv) return;
-    const fail = () => { cv.style.display = 'none'; document.body.classList.add('no-webgl'); };
-    const opts = { antialias: false, alpha: false, depth: false, stencil: false,
-      powerPreference: 'low-power', failIfMajorPerformanceCaveat: false,
-      preserveDrawingBuffer: true }; // keep static frame visible when paused/toggled off
-    let gl = null;
-    try { gl = cv.getContext('webgl', opts) || cv.getContext('experimental-webgl', opts); } catch (e) { /* ignore */ }
-    if (!gl) { fail(); return; }
-
-    const vsrc = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-    const fsrc = `
-      #ifdef GL_FRAGMENT_PRECISION_HIGH
-      precision highp float;
-      #else
-      precision mediump float;
-      #endif
-      uniform vec2 u_res; uniform float u_time; uniform vec2 u_mouse;
-      float hash(vec2 p){p=fract(p*vec2(123.34,345.45));p+=dot(p,p+34.345);return fract(p.x*p.y);}
-      float noise(vec2 p){vec2 i=floor(p),f=fract(p);float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1));vec2 u=f*f*(3.-2.*f);return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}
-      float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.02;a*=.5;}return v;}
-      void main(){
-        vec2 uv=gl_FragCoord.xy/u_res.xy; vec2 p=uv; p.x*=u_res.x/u_res.y;
-        vec2 m=u_mouse; m.x*=u_res.x/u_res.y;
-        float md=length(p-m);
-        // the cursor disturbs the aurora field — ribbons swirl/push around it
-        float infl=exp(-md*md*5.0);
-        vec2 dir = md>0.0001 ? (p-m)/md : vec2(0.0);
-        p += dir*0.14*infl;
-        float t=u_time*0.045;
-        vec2 q=vec2(fbm(p+t),fbm(p+vec2(5.2,1.3)-t));
-        float n=fbm(p*2.0+q*2.4+t + infl*0.6);
-        vec3 violet=vec3(0.66,0.33,0.97), cyan=vec3(0.13,0.83,0.93), pink=vec3(0.93,0.28,0.60);
-        vec3 col=mix(violet,cyan,smoothstep(0.2,0.85,n));
-        col=mix(col,pink,smoothstep(0.62,0.96,n)*0.5);
-        float ribbons=pow(n,3.0);
-        col*=ribbons*2.1;
-        // luminous cursor halo — visible even in the dark gaps between ribbons
-        float glow=smoothstep(0.5,0.0,md);
-        col += mix(cyan,violet,0.35) * glow * (0.4 + ribbons*1.4);
-        col*=smoothstep(1.2,0.1,length(uv-0.5));
-        col*=0.74;
-        gl_FragColor=vec4(col,1.0);
-      }`;
-    const sh = (type, src) => {
-      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.warn('[aurora] shader compile failed:', gl.getShaderInfoLog(s)); return null; }
-      return s;
-    };
-    const vs = sh(gl.VERTEX_SHADER, vsrc), fs = sh(gl.FRAGMENT_SHADER, fsrc);
-    if (!vs || !fs) { fail(); return; }
-    const prog = gl.createProgram();
-    gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { fail(); return; }
-    gl.useProgram(prog);
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    const loc = gl.getAttribLocation(prog, 'p');
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const uRes = gl.getUniformLocation(prog, 'u_res');
-    const uTime = gl.getUniformLocation(prog, 'u_time');
-    const uMouse = gl.getUniformLocation(prog, 'u_mouse');
-    let mx = 0.5, my = 0.6, tmx = 0.5, tmy = 0.6;
-    const resize = () => {
-      const cw = cv.clientWidth, ch = cv.clientHeight;
-      if (cw < 2 || ch < 2) return; // ignore pre-layout / hidden sizes
-      const scale = 0.5; // render at half-res, aurora is soft anyway
-      cv.width = Math.max(2, Math.floor(cw * scale));
-      cv.height = Math.max(2, Math.floor(ch * scale));
-      gl.viewport(0, 0, cv.width, cv.height);
-    };
-    const drawStatic = () => {
-      gl.uniform2f(uRes, cv.width, cv.height);
-      gl.uniform1f(uTime, 8.0);           // a pleasant frozen moment
-      gl.uniform2f(uMouse, 0.5, 0.62);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    };
-    let animating = false, inView = true, raf, start = performance.now();
-    const frame = () => {
-      if (!animating) return;
-      mx = lerp(mx, tmx, 0.14); my = lerp(my, tmy, 0.14);
-      gl.uniform2f(uRes, cv.width, cv.height);
-      gl.uniform1f(uTime, (performance.now() - start) / 1000);
-      gl.uniform2f(uMouse, mx, my);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-      raf = requestAnimationFrame(frame);
-    };
-    const startAnim = () => { if (animating || !motionEnabled || !inView) return; animating = true; frame(); };
-    const stopAnim = () => { animating = false; cancelAnimationFrame(raf); };
-    const onResize = () => { resize(); if (!animating) drawStatic(); };
-    resize();
-    // keep the backing store in sync with actual layout on every machine
-    if (window.ResizeObserver) new ResizeObserver(onResize).observe(cv);
-    addEventListener('resize', onResize);
-    addEventListener('load', onResize);
-    addEventListener('mousemove', (e) => {
-      const r = cv.getBoundingClientRect();
-      tmx = (e.clientX - r.left) / r.width;
-      tmy = 1 - (e.clientY - r.top) / r.height;
-    });
-    new IntersectionObserver((es) => es.forEach((en) => {
-      inView = en.isIntersecting;
-      if (!motionEnabled) return;
-      if (inView) startAnim(); else stopAnim();
-    }), { threshold: 0 }).observe(cv);
-    FX.register({
-      enable: () => { if (inView) startAnim(); else drawStatic(); },
-      disable: () => { stopAnim(); drawStatic(); },
-    });
-  })();
 
   /* ─────────── INTERACTIVE TERMINAL ─────────── */
   (function terminal() {
@@ -658,7 +760,7 @@
       const lc = cmd.toLowerCase();
       if (lc.startsWith('goto')) {
         const target = lc.split(/\s+/)[1];
-        const map = { home: 'hero', terminal: 'explore', explore: 'explore', about: 'about', skills: 'skills', experience: 'experience', exp: 'experience', projects: 'projects', work: 'projects', research: 'research', beyond: 'beyond', contact: 'contact' };
+        const map = { home: 'hero', terminal: 'explore', explore: 'explore', console: 'explore', about: 'about', casestudy: 'casestudy', 'case': 'casestudy', mygym: 'casestudy', skills: 'skills', stack: 'skills', experience: 'experience', exp: 'experience', projects: 'projects', builds: 'projects', work: 'projects', research: 'research', beyond: 'beyond', contact: 'contact' };
         if (map[target]) { print('<span class="term-ok">→ jumping to ' + target + '…</span>'); scrollTo(map[target]); }
         else print('<span class="term-err">goto: unknown section "' + esc(target || '') + '". try: about, skills, projects, research, contact</span>');
         return;
@@ -721,7 +823,8 @@
       { ico: '🏠', label: 'Home', sub: 'top', run: go('hero') },
       { ico: '💻', label: 'Interactive Terminal', sub: 'explore', run: () => { go('explore')(); setTimeout(() => $('#termInput')?.focus(), 500); } },
       { ico: '👤', label: 'About', sub: 'who I am', run: go('about') },
-      { ico: '🧠', label: 'Skills', sub: 'tech arsenal', run: go('skills') },
+      { ico: '🧬', label: 'Case Study', sub: 'MyGym architecture', run: go('casestudy') },
+      { ico: '🧠', label: 'Stack', sub: 'weight matrix', run: go('skills') },
       { ico: '🚀', label: 'Experience', sub: 'where I shipped', run: go('experience') },
       { ico: '🛠️', label: 'Projects', sub: 'featured builds', run: go('projects') },
       { ico: '📄', label: 'Research', sub: 'Springer paper', run: go('research') },
