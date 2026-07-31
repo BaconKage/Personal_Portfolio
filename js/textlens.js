@@ -32,32 +32,6 @@
   const NS = 'http://www.w3.org/2000/svg';
   const XLINK = 'http://www.w3.org/1999/xlink';
 
-  /* Wrap every word in its own inline-block so it can be transformed.
-     Walks text nodes only, so inline markup inside the copy survives. */
-  function splitWords(root, cls) {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode: (n) =>
-        n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT,
-    });
-    const nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
-    const out = [];
-    for (const n of nodes) {
-      const frag = document.createDocumentFragment();
-      for (const piece of n.nodeValue.split(/(\s+)/)) {
-        if (!piece) continue;
-        if (/^\s+$/.test(piece)) { frag.appendChild(document.createTextNode(piece)); continue; }
-        const s = document.createElement('span');
-        s.className = cls;
-        s.textContent = piece;
-        frag.appendChild(s);
-        out.push(s);
-      }
-      n.parentNode.replaceChild(frag, n);
-    }
-    return out;
-  }
-
   function TextLens(opts) {
     const Re = opts.radius || 52;
     const REACH = 3.2;                 // texture covers this many Rₑ
@@ -154,11 +128,12 @@
     const UNIT_SEL = '.hero-char, .btn, .nav-link, .nav-logo, .os-stat, .hero-sub';
     function unitsFor(t) {
       if (t.units) return t.units;
+      /* Display type only. Body copy used to be split into word spans so the
+         warp had more to grip, but deflecting each word of a paragraph
+         independently scatters the sentence into unreadability — a worse
+         outcome than the effect simply not reaching it. The headline glyphs
+         carry the fallback; the prose stays prose. */
       const list = Array.from(t.el.querySelectorAll(UNIT_SEL));
-      // paragraphs get split into words so the warp has something to grip
-      t.el.querySelectorAll('.mh-desc, .mh-eyebrow').forEach((p) => {
-        list.push(...splitWords(p, 'wl-u'));
-      });
       const win = t.el.querySelector('.os-win');
       if (win) list.push(win);
       t.units = list.map((el) => ({ el, on: false }));
@@ -193,12 +168,27 @@
 
     /* ── frame budget ──
        Downgrade rather than switch off: a machine that cannot afford the
-       filter can still afford transforms, and the visitor asked for effects. */
+       filter can still afford transforms, and the visitor asked for effects.
+
+       Only genuine frame times count. rAF stops while the tab is in the
+       background, so the first frame after switching apps reports the whole
+       time you were away — a minute elsewhere arrived as a single 60000ms
+       "frame" and dragged the mean far past the threshold, condemning a
+       perfectly capable machine to the fallback until it reloaded. Anything
+       above STALL is a pause, not a cost: it is dropped, and the window it
+       interrupted is thrown away with it. */
+    const STALL = 200;
     let samples = 0, total = 0, lastT = 0, active = false;
+
+    const resetBudget = () => { samples = 0; total = 0; lastT = 0; };
+    document.addEventListener('visibilitychange', resetBudget);
+
     function budget(now) {
       if (!active || mode !== 'filter') { lastT = now; return; }
       if (lastT) {
-        total += now - lastT;
+        const dt = now - lastT;
+        if (dt > STALL) { resetBudget(); lastT = now; return; }
+        total += dt;
         if (++samples >= 60) {
           if (total / samples > 55) {          // under ~18fps: genuinely unusable
             targets.forEach(detachFilter);

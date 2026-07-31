@@ -1882,5 +1882,4 @@ html.fx-off .pin-hint { animation: none; }
 /* No will-change here on purpose: promoting a viewport-sized element to its
    own layer costs memory on weak integrated GPUs without helping an SVG
    filter, and layer promotion under a filter is where several driver bugs
-   live. The fallback path transforms word spans instead. */
-.wl-u { display: inline-block; }
+   live. The fallback path transforms the headline glyphs instead. */
