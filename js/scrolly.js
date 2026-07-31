@@ -181,7 +181,13 @@
     if (ticking) return;
     ticking = true;
     requestAnimationFrame(() => {
-      subs.forEach((fn) => fn());
+      /* Isolate the subscribers and always clear the latch. This bus drives
+         the rail, section theming, the progress bar, the pinned gallery and
+         the globe — if one subscriber threw, `ticking` stayed true and every
+         scroll-driven thing on the page went dead for good. */
+      for (const fn of subs) {
+        try { fn(); } catch (e) {}
+      }
       ticking = false;
     });
   };
@@ -574,8 +580,19 @@
       if (!supportsPin() || !travel) return;
       const r = section.getBoundingClientRect();
       const p = clamp(-r.top / (section.offsetHeight - window.innerHeight), 0, 1);
-      track.style.transform = `translate3d(${-p * travel}px,0,0)`;
       if (bar) bar.style.transform = `scaleX(${p})`;
+
+      /* The sphere takes the same progress the track would have used, and the
+         section keeps its original scroll length either way. Only paint while
+         the pinned viewport is actually on screen. */
+      const orbit = window.ProjectOrbit;
+      if (orbit && orbit.active) {
+        orbit.setProgress(p);
+        orbit.setVisible(r.top < window.innerHeight && r.bottom > 0);
+        return;
+      }
+
+      track.style.transform = `translate3d(${-p * travel}px,0,0)`;
       $$('.pcard', track).forEach((card) => {
         const cr = card.getBoundingClientRect();
         const centre = (cr.left + cr.width / 2 - window.innerWidth / 2) / window.innerWidth;

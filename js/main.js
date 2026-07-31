@@ -68,11 +68,13 @@
     const statusEl = $('#bootStatus');
 
     let finished = false;
+    let cutSound = null;        // set while the warp is audible; cleared once it lands
     document.body.style.overflow = 'hidden';
 
     const finish = () => {
       if (finished) return;
       finished = true;
+      if (cutSound) cutSound();   // only still set if we were skipped mid-flight
       el.classList.add('done');
       de.classList.add('booted');
       document.body.style.overflow = '';
@@ -164,9 +166,240 @@
       requestAnimationFrame(() => row.classList.add('in'));
     };
 
+    /* ─────────── WARP SOUND ───────────
+       Synthesised, not a file — a rumble, a noise riser and a pitch sweep that
+       climb together and land on an impact at the white-out. The context is
+       opened inside the click handler so the gesture unlocks it; the warp
+       itself starts a few seconds later and could not unlock it on its own. */
+    let audio = null;
+    const openAudio = () => {
+      if (audio) return audio;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { audio = new AC(); } catch (e) { return null; }
+      if (audio.state === 'suspended') audio.resume().catch(() => {});
+      return audio;
+    };
+
+    const warpSound = (ms) => {
+      const ac = audio;
+      if (!ac) return null;
+      const t0 = ac.currentTime + 0.02;
+      const d = ms / 1000;
+      const hit = t0 + d;
+
+      // a compressor on the bus so three sources climbing at once cannot clip
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -14;
+      comp.ratio.value = 8;
+      comp.connect(ac.destination);
+      const bus = ac.createGain();
+      bus.gain.setValueAtTime(0.0001, t0);
+      bus.gain.exponentialRampToValueAtTime(0.34, t0 + d * 0.9);
+      bus.connect(comp);
+
+      const nodes = [];
+
+      // noise through a bandpass climbing 180Hz → 8kHz: the riser
+      const len = Math.ceil(ac.sampleRate * (d + 0.8));
+      const buf = ac.createBuffer(1, len, ac.sampleRate);
+      const ch = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+      const noise = ac.createBufferSource();
+      noise.buffer = buf;
+      const bp = ac.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = 1.4;
+      bp.frequency.setValueAtTime(180, t0);
+      bp.frequency.exponentialRampToValueAtTime(8000, hit);
+      const ng = ac.createGain();
+      ng.gain.setValueAtTime(0.05, t0);
+      ng.gain.exponentialRampToValueAtTime(0.55, hit);
+      noise.connect(bp).connect(ng).connect(bus);
+      noise.start(t0); noise.stop(hit + 0.7);
+      nodes.push(noise);
+
+      // sub rumble — the part you feel rather than hear
+      const sub = ac.createOscillator();
+      sub.type = 'triangle';
+      sub.frequency.setValueAtTime(36, t0);
+      sub.frequency.exponentialRampToValueAtTime(124, hit);
+      const sg = ac.createGain();
+      sg.gain.setValueAtTime(0.10, t0);
+      sg.gain.exponentialRampToValueAtTime(0.6, hit);
+      sub.connect(sg).connect(bus);
+      sub.start(t0); sub.stop(hit + 0.2);
+      nodes.push(sub);
+
+      // doppler sweep
+      const swp = ac.createOscillator();
+      swp.type = 'sawtooth';
+      swp.frequency.setValueAtTime(66, t0);
+      swp.frequency.exponentialRampToValueAtTime(1500, hit);
+      const lp = ac.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(400, t0);
+      lp.frequency.exponentialRampToValueAtTime(9000, hit);
+      const wg = ac.createGain();
+      wg.gain.setValueAtTime(0.015, t0);
+      wg.gain.exponentialRampToValueAtTime(0.2, hit);
+      swp.connect(lp).connect(wg).connect(bus);
+      swp.start(t0); swp.stop(hit + 0.2);
+      nodes.push(swp);
+
+      // the landing
+      const thump = ac.createOscillator();
+      thump.type = 'sine';
+      thump.frequency.setValueAtTime(170, hit);
+      thump.frequency.exponentialRampToValueAtTime(32, hit + 0.55);
+      const tg = ac.createGain();
+      tg.gain.setValueAtTime(0.9, hit);
+      tg.gain.exponentialRampToValueAtTime(0.0001, hit + 0.8);
+      thump.connect(tg).connect(bus);
+      thump.start(hit); thump.stop(hit + 0.85);
+      nodes.push(thump);
+
+      // everything decays out from under the hero
+      bus.gain.setValueAtTime(0.34, hit);
+      bus.gain.exponentialRampToValueAtTime(0.0001, hit + 0.9);
+      const reap = setTimeout(() => { try { ac.close(); } catch (e) {} audio = null; }, (d + 1.4) * 1000);
+
+      // hard cut, for skip and Escape
+      return () => {
+        clearTimeout(reap);
+        const now = ac.currentTime;
+        try {
+          bus.gain.cancelScheduledValues(now);
+          bus.gain.setValueAtTime(Math.max(bus.gain.value, 0.0001), now);
+          bus.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+        } catch (e) {}
+        nodes.forEach((n) => { try { n.stop(now + 0.14); } catch (e) {} });
+        setTimeout(() => { try { ac.close(); } catch (e) {} audio = null; }, 250);
+      };
+    };
+
+    /* ─────────── HYPERLAPSE ───────────
+       Compiled → flying. A star tunnel that starts as a drift and ends at a
+       speed nothing is legible at, in colours the rest of the page never uses,
+       accelerating into the bloom the hero fades up through. The console panel
+       is thrown past the camera by CSS at the same time (.boot.warping), and
+       the whole frame shakes harder the faster it gets. */
+    const WARP_MS = 2600;
+    const SHAKE_MAX = 19;      // px at peak — enough to feel, short of nauseating
+    const hyperlapse = (then) => {
+      const cv = $('#warpCanvas');
+      const ctx = cv && cv.getContext ? cv.getContext('2d') : null;
+      if (!ctx) return then();
+
+      el.classList.add('warping');
+      if (statusEl) statusEl.textContent = 'entering';
+      cutSound = warpSound(WARP_MS);
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);   // same clamp the field and sky use
+      let w = 0, h = 0, cx = 0, cy = 0;
+      const size = () => {
+        w = cv.clientWidth; h = cv.clientHeight;
+        cv.width = Math.max(2, Math.round(w * dpr));
+        cv.height = Math.max(2, Math.round(h * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        cx = w / 2; cy = h / 2;
+      };
+      size();
+      window.addEventListener('resize', size);
+
+      // the two site accents plus three that appear nowhere else, so the
+      // tunnel reads as its own moment rather than more of the same palette
+      const HUES = ['#a855f7', '#22d3ee', '#f472b6', '#fbbf24', '#e9d5ff'];
+      const DEPTH = 1400, FOCAL = 620;
+      // particle count follows viewport area, like field.js — a laptop should
+      // not be asked to draw a desktop's tunnel
+      const N = Math.round(clamp((w * h) / 2600, 170, 520));
+
+      const spawn = (p, z) => {
+        const a = Math.random() * 6.2832;
+        // biased outward so the middle stays open and the streaks read radial
+        const r = 60 + Math.pow(Math.random(), 0.45) * 900;
+        p.x = Math.cos(a) * r;
+        p.y = Math.sin(a) * r;
+        p.z = z;
+        p.seen = false;
+        p.c = HUES[(Math.random() * HUES.length) | 0];
+        p.w = 0.6 + Math.random() * 1.8;
+      };
+      const P = [];
+      for (let i = 0; i < N; i++) { const p = {}; spawn(p, 40 + Math.random() * DEPTH); P.push(p); }
+
+      const t0 = performance.now();
+      let last = t0, raf = 0;
+
+      const stop = () => {
+        cancelAnimationFrame(raf);
+        window.removeEventListener('resize', size);
+      };
+
+      const frame = (now) => {
+        if (finished) return stop();                       // skip / Escape mid-flight
+        const t = Math.min((now - t0) / WARP_MS, 1);
+        const dt = Math.min(now - last, 48);               // a stalled tab must not teleport the field
+        last = now;
+
+        const speed = (0.06 + Math.pow(t, 2.3) * 6.2) * dt;
+        const roll = t * t * 0.55;
+        const cos = Math.cos(roll), sin = Math.sin(roll);
+
+        /* Screenshake, ramped steeply so it is barely there for the first half
+           and violent by the end. CSS `translate`/`rotate` are separate
+           properties from `transform`, so these compose with the scale the
+           warpPast/warpFlash keyframes are animating instead of fighting it. */
+        const amp = SHAKE_MAX * Math.pow(t, 2.6);
+        const shx = (Math.random() * 2 - 1) * amp;
+        const shy = (Math.random() * 2 - 1) * amp;
+        el.style.setProperty('--shx', shx.toFixed(2) + 'px');
+        el.style.setProperty('--shy', shy.toFixed(2) + 'px');
+        el.style.setProperty('--shr', ((Math.random() * 2 - 1) * amp * 0.045).toFixed(3) + 'deg');
+
+        // partial clear instead of a wipe: the leftovers are the motion trail,
+        // and letting it persist longer as t rises is what sells the speed.
+        // Cleared unshaken so the shake never exposes a sliver of bare canvas.
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(5, 0, 14, ' + (0.55 - t * 0.33).toFixed(3) + ')';
+        ctx.fillRect(0, 0, w, h);
+        ctx.setTransform(dpr, 0, 0, dpr, shx * dpr, shy * dpr);
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineCap = 'round';
+
+        for (const p of P) {
+          p.z -= speed;
+          if (p.z < 6) { spawn(p, DEPTH); continue; }
+          const k = FOCAL / p.z;
+          const sx = cx + (p.x * cos - p.y * sin) * k;
+          const sy = cy + (p.x * sin + p.y * cos) * k;
+          if (p.seen) {
+            ctx.strokeStyle = p.c;
+            ctx.globalAlpha = Math.min(1, (1 - p.z / DEPTH) * 0.9 + 0.1) * (0.35 + t * 0.65);
+            ctx.lineWidth = Math.min(p.w * k * 1.6, 26);
+            ctx.beginPath();
+            ctx.moveTo(p.px, p.py);
+            ctx.lineTo(sx, sy);
+            ctx.stroke();
+          }
+          p.px = sx; p.py = sy; p.seen = true;
+        }
+        ctx.globalAlpha = 1;
+
+        if (t < 1) { raf = requestAnimationFrame(frame); return; }
+        stop();
+        cutSound = null;   // it landed — let the impact ring out under the hero
+        then();
+      };
+      raf = requestAnimationFrame(frame);
+    };
+
     const run = () => {
       if (el.classList.contains('running')) return;
       el.classList.add('running');
+      openAudio();          // must happen inside the gesture, not 3s later
       if (statusEl) statusEl.textContent = 'building…';
       // the whole sequence lands around 2.8s — long enough to read as a real
       // build, short enough that nobody bounces waiting for it
@@ -195,7 +428,8 @@
           if (last) addLog(last[0], last[1]);
           if (statusEl) statusEl.textContent = 'ready';
           caret.classList.add('done');
-          setTimeout(finish, 450);
+          // a beat to read "ready", then fly
+          setTimeout(() => hyperlapse(finish), 260);
           return;
         }
         const tk = tokens[ti];

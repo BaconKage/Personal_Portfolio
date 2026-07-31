@@ -137,6 +137,66 @@ main { position: relative; z-index: 1; }
   width: 100%;
   height: 100%;
   opacity: 0.75;
+  transition: opacity 0.5s linear;
+}
+
+/* ─────────── HYPERLAPSE ───────────
+   The payoff between "compiled" and the site itself. The console flies past
+   the camera while a colour-streaked star tunnel accelerates into a white-out,
+   and the hero is what that white-out fades down to. */
+#warpCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.35s linear;
+}
+.boot.warping #warpCanvas { opacity: 1; }
+.boot.warping #bootCanvas { opacity: 0; }
+.boot.warping .boot-scan { opacity: 0; transition: opacity 0.5s linear; }
+.boot.warping .boot-frame {
+  animation: warpPast 1s cubic-bezier(0.55, 0, 0.9, 0.42) forwards;
+  pointer-events: none;
+}
+@keyframes warpPast {
+  to { transform: scale(2.7); opacity: 0; filter: blur(16px); }
+}
+
+/* The vignette turns into the bloom it is flying into. */
+.boot.warping::after {
+  z-index: 4;
+  background: radial-gradient(circle at 50% 50%,
+    #fff 0%,
+    color-mix(in oklab, var(--accent-a) 55%, #fff) 16%,
+    color-mix(in oklab, var(--accent-b) 45%, transparent) 38%,
+    transparent 64%);
+  animation: warpFlash 2.6s cubic-bezier(0.72, 0, 0.86, 0.58) forwards;
+}
+@keyframes warpFlash {
+  0%   { opacity: 0; transform: scale(0.1); }
+  45%  { opacity: 0.16; }
+  78%  { opacity: 0.5; }
+  100% { opacity: 1; transform: scale(3.9); }
+}
+
+/* ── screenshake ──
+   `translate` and `rotate` are independent of `transform`, so writing them
+   per frame from the warp loop composes with the scale the keyframes above
+   are animating rather than clobbering it. Everything on screen shakes
+   together: the tunnel (offset inside the canvas), the panel, the bloom. */
+.boot.warping .boot-frame,
+.boot.warping::after {
+  translate: var(--shx, 0px) var(--shy, 0px);
+  rotate: var(--shr, 0deg);
+}
+
+/* Fly through rather than lift away — this exit only applies to the warped
+   path, so skip and the reduced-motion path keep the original drift. */
+.boot.warping.done {
+  transform: scale(1.32);
+  transition-duration: 0.55s;
 }
 .boot::after {
   /* vignette keeps the console legible over the constellation */
@@ -1365,6 +1425,109 @@ html.fx-off .sp-unit { transform: none; opacity: 1; }
 .pcard .chips { margin-top: auto; padding-top: 16px; }
 .pcard .project-links { margin-top: 14px; }
 
+/* ─────────── ORBIT ───────────
+   The sphere only exists once orbit.js has WebGL2, a big enough viewport and
+   effects on. Until then — and forever, if any of those fail — .pin-track is
+   the gallery. Both live in the same grid cell so the swap costs no layout. */
+#orbitCanvas {
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  cursor: grab;
+  touch-action: pan-y;
+}
+#orbitCanvas:active { cursor: grabbing; }
+#projects.orbit-on #orbitCanvas { display: block; }
+#projects.orbit-on .pin-track {
+  opacity: 0;
+  pointer-events: none;
+  /* not display:none — the cards stay in the accessibility tree */
+}
+
+/* The hidden card track is a ~2500px-wide flex row, and as a grid item it
+   was stretching the pinned viewport's only column — which is what pushed the
+   section heading off to the right. Taking it out of flow while the globe is
+   up lets the head sit at the margin where it belongs. */
+#projects.orbit-on .pin-track {
+  position: absolute;
+  inset: 0;
+}
+#projects.orbit-on .pin-hint { display: none; }
+
+/* ── the write-up for whatever is facing you, always on ── */
+.orbit-hud {
+  display: none;
+  position: absolute;
+  left: var(--marg);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: min(400px, 34vw);
+  pointer-events: none;
+}
+#projects.orbit-on .orbit-hud { display: block; }
+.orbit-hud > * {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.45s var(--ease-out), transform 0.45s var(--ease-out);
+}
+.orbit-hud.in > * { opacity: 1; transform: none; }
+.orbit-hud.in .orbit-title { transition-delay: 0.03s; }
+.orbit-hud.in .orbit-sub { transition-delay: 0.06s; }
+.orbit-hud.in .orbit-desc { transition-delay: 0.09s; }
+.orbit-hud.in .orbit-chips { transition-delay: 0.12s; }
+.orbit-hud.in .orbit-link { transition-delay: 0.15s; }
+.orbit-hud.in .orbit-hint { transition-delay: 0.18s; }
+
+.orbit-idx {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: var(--text-faint);
+  margin-bottom: 12px;
+}
+.orbit-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.orbit-sub {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--accent-b);
+  margin-bottom: 16px;
+}
+.orbit-desc {
+  color: var(--text-dim);
+  font-size: 0.93rem;
+  line-height: 1.66;
+  margin-bottom: 16px;
+}
+.orbit-chips { margin-bottom: 16px; }
+.orbit-link {
+  pointer-events: auto;
+  display: inline-block;
+  font-size: 0.78rem;
+  color: var(--accent-b);
+  border-bottom: 1px solid color-mix(in oklab, var(--accent-b) 40%, transparent);
+  margin-bottom: 18px;
+}
+.orbit-link[hidden] { display: none; }
+.orbit-hint {
+  display: block;
+  font-size: 0.64rem;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
 .pin-progress {
   position: absolute;
   left: var(--marg);
@@ -1646,7 +1809,68 @@ html.fx-off .sp-unit { transform: none; opacity: 1; }
   .pullquote::before { display: none; }
 }
 
+/* ═══════════════════════════════════════════════════════
+   ELECTRIC BORDERS — cards, on hover only
+   The ring is a gradient painted into a border-width band
+   by an xor mask, then torn apart by the shared turbulence
+   filter in bolt.js. Colour rides --accent-a/--accent-b,
+   so the electricity changes hue section by section along
+   with everything else.
+   ═══════════════════════════════════════════════════════ */
+/* z-index at rest so the hovered card can lift over the 1px grid dividers
+   its neighbours share — otherwise the arcs get painted under them. */
+[data-bolt] { position: relative; z-index: 0; }
+[data-bolt]:hover { z-index: 2; }
+
+/* .pcard is the only family that clips. Its ::before wash is inset 0 and its
+   content is prose, so nothing needed the clip except the clip itself. */
+.pcard[data-bolt] { overflow: visible; }
+
+.bolt {
+  position: absolute;
+  inset: var(--bolt-inset, -7px);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.28s var(--ease-out);
+  filter: url(#boltWarp)
+          drop-shadow(0 0 4px color-mix(in oklab, var(--accent-b) 70%, transparent))
+          drop-shadow(0 0 14px color-mix(in oklab, var(--accent-a) 45%, transparent));
+}
+[data-bolt]:hover .bolt { opacity: 1; }
+
+/* Frame-budget fallback: keep the bloom, drop the displacement. */
+html.bolt-plain .bolt {
+  filter: drop-shadow(0 0 4px color-mix(in oklab, var(--accent-b) 70%, transparent))
+          drop-shadow(0 0 14px color-mix(in oklab, var(--accent-a) 45%, transparent));
+}
+
+.bolt-ring {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  padding: var(--bolt-w, 2px);
+  /* The hot-spot is positioned in the card's own space and then masked down to
+     the ring, so the perimeter simply comes out brightest at the point nearest
+     the cursor — no per-edge projection needed. */
+  background:
+    radial-gradient(190px circle at var(--bx, 50%) var(--by, 50%),
+      #fff 0%,
+      color-mix(in oklab, var(--accent-b) 88%, #fff) 14%,
+      color-mix(in oklab, var(--accent-a) 85%, transparent) 42%,
+      transparent 76%),
+    linear-gradient(140deg,
+      color-mix(in oklab, var(--accent-a) 34%, transparent),
+      color-mix(in oklab, var(--accent-b) 34%, transparent));
+  -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  -webkit-mask-clip: content-box, border-box;
+  -webkit-mask-composite: xor;
+  mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-clip: content-box, border-box;
+  mask-composite: exclude;
+}
+
 /* ─────────── REDUCED MOTION ─────────── */
+html.fx-off .bolt { display: none; }
 html.fx-off .masthead { transform: none; opacity: 1; }
 html.fx-off .step { opacity: 1; transform: none; }
 html.fx-off .mh-scroll-line::after,
