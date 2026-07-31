@@ -349,8 +349,12 @@
       settle() { for (let i = 0; i < 40; i++) step(16); draw(); },
       /* a click briefly deepens the well */
       pulse() { hole.targetR = Math.min(hole.targetR + 34, 120); },
-      /* the text lens reads this so both warps share one centre and radius */
-      lensState() { return { x: hole.x, y: hole.y, R: hole.R, live: mouse.active }; },
+      /* The text lens reads this so both warps share one centre and radius.
+         `running` has to be part of it: the pointer stays "active" from the
+         first move until it leaves the window, so once you scrolled out of
+         the hero the starfield stopped and faded but the DOM warp kept being
+         applied — and the nav is fixed, so it sat there distorted for good. */
+      lensState() { return { x: hole.x, y: hole.y, R: hole.R, live: running && mouse.active }; },
       resize,
       get running() { return running; },
     };

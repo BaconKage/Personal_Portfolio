@@ -408,7 +408,7 @@
   };
 
   /* ── state ── */
-  let mounted = false, running = false, raf = 0, w = 0, h = 0;
+  let mounted = false, running = false, raf = 0, w = 0, h = 0, ro = null;
   let yaw = 0, pitch = 0, yawTo = 0, pitchTo = 0;
   let spin = 0, spinV = 0;                 // user drag, on top of the scroll
   let step = -1;
@@ -456,13 +456,23 @@
     window.scrollTo({ top: section.offsetTop + travel * ((k + 0.5) / N), behavior: 'smooth' });
   };
 
+  /* Follows the canvas's own box, not the window's.
+     Mounting races scrolly's measure(): until the section is pinned, the
+     viewport is only as tall as its heading — about 54px — so a mount that
+     wins that race baked an aspect of ~24 into the projection and a 54px-tall
+     drawing buffer. Pinning then stretched that buffer into a full-height box
+     and the globe came out as a thin vertical sliver. A window resize was the
+     only thing that ever re-ran this, and pinning is not one. */
   const size = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    w = canvas.clientWidth; h = canvas.clientHeight;
-    if (w < 2 || h < 2) return;
-    canvas.width = Math.round(w * dpr);
-    canvas.height = Math.round(h * dpr);
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    const cw = canvas.clientWidth, ch = canvas.clientHeight;
+    if (cw < 2 || ch < 2) return;
+    const bw = Math.round(cw * dpr), bh = Math.round(ch * dpr);
+    if (cw === w && ch === h && bw === canvas.width && bh === canvas.height) return;
+    w = cw; h = ch;
+    canvas.width = bw;
+    canvas.height = bh;
+    gl.viewport(0, 0, bw, bh);
     setProj(w / h);
   };
 
@@ -567,6 +577,9 @@
     section.classList.add('orbit-on');
     size();
     window.addEventListener('resize', size);
+    // the box can change without the window doing anything — pinning, fonts,
+    // the fallback swapping in — so watch the element itself
+    if (window.ResizeObserver) { ro = new ResizeObserver(size); ro.observe(canvas); }
     canvas.addEventListener('pointerdown', onDown);
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('pointerup', onUp);
@@ -582,6 +595,7 @@
     mounted = false;
     section.classList.remove('orbit-on');
     window.removeEventListener('resize', size);
+    if (ro) { ro.disconnect(); ro = null; }
     canvas.removeEventListener('pointerdown', onDown);
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
