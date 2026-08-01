@@ -70,8 +70,12 @@
     asleep = true;
     sleepEl.hidden = false;
     document.body.style.overflow = 'hidden';
-    // a frame between unhiding and the class, or the fade has nothing to run from
-    requestAnimationFrame(() => sleepEl.classList.add('on'));
+    /* Flush layout so the transition has a start value to run from, rather
+       than waiting a frame for it. Deferring to rAF meant that if no frame
+       arrived the overlay stayed at opacity 0 while already unhidden — an
+       invisible sheet over the whole page, swallowing clicks. */
+    void sleepEl.offsetHeight;
+    sleepEl.classList.add('on');
   };
 
   /* ── restart ──
