@@ -79,7 +79,52 @@
       de.classList.add('booted');
       document.body.style.overflow = '';
       try { sessionStorage.setItem('booted', '1'); } catch (e) {}
-      setTimeout(() => el.remove(), 1000);
+      // stowed, not removed — the power menu can bring the machine back up
+      setTimeout(() => { if (finished) el.classList.add('stowed'); }, 1000);
+    };
+
+    /* ─────────── COLD BOOT ───────────
+       Bring the machine back up from wherever it is: the power menu's
+       shut-down, or the button at the foot of the page. Everything the run
+       mutates is put back by hand, because the boot element is stowed rather
+       than destroyed and a second run would otherwise type into the first
+       one's leftovers.
+
+       Defined before the skip below on purpose. A returning visitor, or
+       anyone with effects off, never reaches the rest of this function — and
+       without the API up here Shut Down would have had nothing to call and
+       would have failed silently for exactly those people. */
+    function armBail() {
+      setTimeout(() => { if (el.classList.contains('running')) finish(); }, 12000);
+    }
+
+    window.SystemBoot = {
+      replay() {
+        finished = false;
+        cutSound = null;
+        el.classList.remove('done', 'stowed', 'running', 'instant', 'warping');
+        de.classList.remove('booted');
+        document.body.style.overflow = 'hidden';
+        try { sessionStorage.removeItem('booted'); } catch (e) {}
+
+        if (codeEl) codeEl.innerHTML = '';
+        if (logEl) logEl.innerHTML = '';
+        if (statusEl) statusEl.textContent = 'awaiting input';
+        // the progress bar keeps its 2.9s transition, so snap it back unanimated
+        if (bar) {
+          bar.style.transition = 'none';
+          bar.style.transform = 'scaleX(0)';
+          requestAnimationFrame(() => { bar.style.transition = ''; });
+        }
+        // the hyperlapse writes these every frame and never clears them
+        ['--shx', '--shy', '--shr'].forEach((p) => el.style.removeProperty(p));
+
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        window.__bootBackdrop?.start();
+        armBail();
+        setTimeout(() => startBtn?.focus(), 120);
+      },
+      get running() { return !finished; },
     };
 
     // Returning within the same session shouldn't mean sitting through
@@ -471,7 +516,7 @@
     if (hint) setTimeout(() => hint.classList.add('show'), 900);
 
     // never trap someone behind a stalled intro
-    setTimeout(() => { if (!el.classList.contains('running')) return; finish(); }, 12000);
+    armBail();
   })();
 
   /* ─────────── BOOT BACKDROP ─────────── */
@@ -479,7 +524,7 @@
     const cv = $('#bootCanvas');
     if (!cv || !motionEnabled) return;
     const ctx = cv.getContext('2d');
-    let w = 0, h = 0, pts = [], raf, t0 = performance.now();
+    let w = 0, h = 0, pts = [], raf = 0, t0 = performance.now();
 
     const size = () => {
       const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -495,8 +540,10 @@
     size();
     addEventListener('resize', size);
 
+    const boot = $('#boot');
     const frame = () => {
-      if (!document.getElementById('boot')) { cancelAnimationFrame(raf); return; }
+      // the boot is stowed rather than removed now, so idle on that instead
+      if (!boot || boot.classList.contains('stowed')) { raf = 0; return; }
       const age = Math.min((performance.now() - t0) / 2600, 1);
       ctx.clearRect(0, 0, w, h);
       for (const p of pts) {
@@ -524,7 +571,11 @@
       }
       raf = requestAnimationFrame(frame);
     };
-    frame();
+
+    // replay() calls this to wake the constellation back up
+    const start = () => { if (!raf) { t0 = performance.now(); raf = requestAnimationFrame(frame); } };
+    window.__bootBackdrop = { start };
+    start();
   })();
 
   /* ─────────── SPLIT HERO NAME INTO LETTERS ─────────── */

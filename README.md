@@ -87,6 +87,91 @@ settles in ~1.8 s with under 1% overshoot, and runs identically at 60 Hz and 144
 | **Display type** | The masthead sizes itself off its own column with container query units, instead of guessing at viewport breakpoints |
 | **Builds gallery** | Vertical scroll pans a pinned horizontal track, releasing back to a normal stack when there isn't the height for it |
 | **Console** | A working shell with command parsing, history and tab-completion — everything on the page is queryable from it |
+| **Power menu** | The desktop metaphor taken to its conclusion: sleep, restart and a CRT power-off that drops back to the start screen, plus a shut-down button at the foot of the document |
+
+---
+
+## Bugs worth writing down
+
+Building this turned up a handful of failures that were more interesting than the
+features. Keeping them here because in every case the symptom pointed somewhere
+other than the cause.
+
+### A sphere squashed into a sliver
+
+The projects globe rendered as a thin vertical line in production, and nowhere else.
+
+Mounting races the layout pass that pins the section. Until that runs, the pinned
+viewport isn't sticky and isn't `100vh` — it's only as tall as its own heading, about
+**54 px**. A mount that won the race sized the drawing buffer to 1280×54 and baked an
+aspect ratio of **23.7** into the projection matrix, squashing x more than tenfold.
+Pinning then stretched that 54-pixel buffer up into a full-height box, which is where
+the *tall* part of the sliver came from.
+
+Nothing corrected it, because the resize handler only listened to the **window** — and
+being pinned isn't a window resize. The canvas now watches its own box with a
+`ResizeObserver`. It never reproduced locally because a warm cache let the layout pass
+win the race every time.
+
+### Landmasses that came out black
+
+Each project's id was packed into the alpha channel of the map texture — tidy, and
+quietly wrong. Canvas backing stores are **premultiplied**, so writing an id of `1`
+into alpha means `1/255 ≈ 0.004`, and `putImageData` multiplies that pixel's colour by
+it on the way in. Every landmass rendered near-black inside its own coastline. Art and
+ids are two opaque textures now.
+
+### A tab switch condemning the lens to its fallback
+
+Leaving the site for another app and coming back left the hero warp in its low-power
+fallback — glyphs shoved around individually instead of the smooth filter — until a
+reload.
+
+The frame-budget watchdog counted every gap between `requestAnimationFrame` callbacks
+as a frame time. rAF doesn't run in a background tab, so the first callback after
+switching back reports *the entire time you were away* as one frame. Forty-five seconds
+elsewhere arrives as a single 45,000 ms sample, which on its own drags a sixty-sample
+mean to 750 ms against a 55 ms threshold. A machine holding a comfortable 60 fps got
+demoted because its owner looked at something else. Gaps over 200 ms are now treated as
+pauses rather than costs.
+
+### One throwing subscriber killing every scroll effect
+
+The shared scroll bus sets a latch, then clears it inside the rAF callback — with
+nothing catching a throw. A single failing subscriber left the latch set forever and
+took the rail, section theming, the progress bar, the pinned gallery and the globe down
+with it, permanently, until reload. Subscribers are isolated now and the latch always
+clears.
+
+### The lens that never let go
+
+`lensState()` reported `live` as "has the pointer moved", which latches true from the
+first movement until the pointer leaves the window entirely. It never asked whether the
+hole was still on screen. Scrolling out of the hero stops the starfield and fades the
+canvas — but the DOM warp kept being applied, and the nav is `position: fixed`, so it
+sat there permanently distorted. `live` now requires the simulation to be running, so
+the text warp shares the hole's lifetime.
+
+### A dwell that landed between projects
+
+The globe holds still on each project as you scroll past it. The easing that produced
+the hold put its flat section at the *step boundary* — which is exactly where the
+caption swaps. So the planet stopped moving precisely as the text changed, and raced
+through the middle of each step where it should have been resting. Inverting it fixed
+all six.
+
+A companion bug in the same feature: longitudes were assigned ascending, but the yaw
+needed to face each one is its negation, which then *descends*. The unwrap that keeps
+rotation monotonic responded by adding a whole extra revolution between every pair —
+six spins where there should have been one.
+
+### Filter, then clip, then mask
+
+The cards' lightning border is a gradient masked into a thin band and torn apart by a
+displacement filter. Doing both on one element renders nothing useful: CSS applies
+**filter, then clip, then mask**, so the ring gets displaced and then clipped straight
+back into a rectangle. The ring lives in a nested element so the mask happens
+underneath the filter — the only arrangement where any of the crackle escapes the box.
 
 ---
 
@@ -102,7 +187,10 @@ js/
   textlens.js       SVG displacement warp for DOM content
   field.js          the neural field
   scrolly.js        section theming, dock, case-study diagram, pinned gallery
-  main.js           boot sequence, cursor, terminal, command palette
+  main.js           boot sequence, hyperlapse, cursor, terminal, command palette
+  bolt.js           cursor-reactive lightning borders on the content cards
+  orbit.js          the builds globe — WebGL2, one landmass per project
+  power.js          sleep, restart, shut down
 assets/icons/       local SVG logos — no icon CDN
 ```
 

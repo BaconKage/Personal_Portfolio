@@ -19,8 +19,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=91" />
-  <link rel="stylesheet" href="css/editorial.css?v=91" />
+  <link rel="stylesheet" href="css/style.css?v=93" />
+  <link rel="stylesheet" href="css/editorial.css?v=93" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
 </head>
 <body>
@@ -64,6 +64,20 @@
     </div>
 
     <button class="boot-skip mono" id="bootSkip" type="button">skip →</button>
+  </div>
+
+  <!-- ═══════════ POWER STATES ═══════════ -->
+  <!-- CRT power-off: the picture collapses to a line, the line to a point -->
+  <div class="pwr-off" id="pwrOff" aria-hidden="true">
+    <i class="pwr-line"></i>
+  </div>
+
+  <!-- sleep: drifting colour, waiting for a nudge -->
+  <div class="pwr-sleep" id="pwrSleep" hidden>
+    <div class="pwr-sleep-inner">
+      <p class="pwr-sleep-title">Asleep</p>
+      <p class="pwr-sleep-hint mono">click anywhere to wake up</p>
+    </div>
   </div>
 
   <!-- ═══════════ CURSOR · PROGRESS ═══════════ -->
@@ -114,6 +128,28 @@
       </span>
       <span class="os-stat">Bengaluru</span>
       <span class="os-stat os-clock" data-clock>--:--:--</span>
+    </div>
+
+    <!-- Outside .os-status on purpose: that cluster is aria-hidden, and a
+         focusable control inside it would be reachable but unannounced. -->
+    <div class="os-power" id="osPower">
+      <button class="os-power-btn" id="powerBtn" type="button"
+              aria-haspopup="menu" aria-expanded="false" aria-label="Power">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M12 3.5v7.5"/><path d="M6.8 6.8a7.5 7.5 0 1 0 10.4 0"/>
+        </svg>
+      </button>
+      <div class="os-power-menu" id="powerMenu" role="menu" aria-labelledby="powerBtn" hidden>
+        <button class="os-power-item" type="button" role="menuitem" data-power="sleep">
+          <span>Sleep</span><span class="os-power-key mono">Z</span>
+        </button>
+        <button class="os-power-item" type="button" role="menuitem" data-power="restart">
+          <span>Restart</span><span class="os-power-key mono">R</span>
+        </button>
+        <button class="os-power-item" type="button" role="menuitem" data-power="shutdown">
+          <span>Shut Down</span><span class="os-power-key mono">Q</span>
+        </button>
+      </div>
     </div>
     <button class="nav-burger" id="navBurger" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -914,6 +950,20 @@
       </div>
     </div>
 
+    <!-- the end of the document is the end of the session -->
+    <div class="swiss shutdown-block">
+      <div class="shutdown-in">
+        <p class="shutdown-eyebrow mono">End of session</p>
+        <button class="shutdown-btn" id="endShutdown" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <path d="M12 3.5v7.5"/><path d="M6.8 6.8a7.5 7.5 0 1 0 10.4 0"/>
+          </svg>
+          <span>Shut down</span>
+        </button>
+        <p class="shutdown-note mono">Powers the machine off and returns you to the start screen</p>
+      </div>
+    </div>
+
     <footer class="footer">
       <div class="swiss footer-in">
         <p class="mono">Designed and built by Shubhang Srinivas Varda</p>
@@ -1017,12 +1067,13 @@
     </div>
   </div>
 
-  <script src="js/field.js?v=91"></script>
-  <script src="js/sky.js?v=91"></script>
-  <script src="js/textlens.js?v=91"></script>
-  <script src="js/main.js?v=91"></script>
-  <script src="js/bolt.js?v=91"></script>
-  <script src="js/orbit.js?v=91"></script>
-  <script src="js/scrolly.js?v=91"></script>
+  <script src="js/field.js?v=93"></script>
+  <script src="js/sky.js?v=93"></script>
+  <script src="js/textlens.js?v=93"></script>
+  <script src="js/main.js?v=93"></script>
+  <script src="js/bolt.js?v=93"></script>
+  <script src="js/orbit.js?v=93"></script>
+  <script src="js/power.js?v=93"></script>
+  <script src="js/scrolly.js?v=93"></script>
 </body>
 </html>

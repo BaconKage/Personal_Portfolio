@@ -1883,3 +1883,217 @@ html.fx-off .pin-hint { animation: none; }
    own layer costs memory on weak integrated GPUs without helping an SVG
    filter, and layer promotion under a filter is where several driver bugs
    live. The fallback path transforms the headline glyphs instead. */
+
+/* ═══════════════════════════════════════════════════════
+   POWER — menu bar control, and the three states it offers
+   ═══════════════════════════════════════════════════════ */
+/* Lives in the menu bar, so it only exists while the desktop is up. */
+.os-power { display: none; position: relative; margin-left: auto; }
+html.at-top .os-power { display: block; }
+
+.os-power-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-dim);
+  transition: color 0.25s, background 0.25s;
+}
+.os-power-btn svg { width: 14px; height: 14px; }
+.os-power-btn:hover { color: var(--text); background: rgba(255, 255, 255, 0.09); }
+.os-power-btn[aria-expanded='true'] {
+  color: #fff;
+  background: color-mix(in oklab, var(--accent-a) 55%, transparent);
+}
+.os-power-btn:focus-visible { outline: 2px solid var(--accent-b); outline-offset: 2px; }
+
+.os-power-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1200;
+  min-width: 186px;
+  padding: 5px;
+  background: rgba(12, 6, 26, 0.86);
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  transform-origin: top right;
+  animation: pwrMenuIn 0.16s var(--ease-out);
+}
+.os-power-menu[hidden] { display: none; }
+@keyframes pwrMenuIn {
+  from { opacity: 0; transform: scale(0.94) translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.os-power-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  padding: 8px 11px;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.82rem;
+  color: var(--text);
+  transition: background 0.18s;
+}
+.os-power-item:hover,
+.os-power-item:focus-visible {
+  background: color-mix(in oklab, var(--accent-a) 42%, transparent);
+  outline: none;
+}
+.os-power-key { font-size: 0.66rem; color: var(--text-faint); }
+.os-power-item:hover .os-power-key { color: rgba(255, 255, 255, 0.75); }
+
+/* ─────────── the button at the foot of the page ─────────── */
+.shutdown-block { margin-top: clamp(60px, 9vh, 100px); }
+.shutdown-in {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-block: clamp(34px, 5vh, 58px);
+  border-top: 1px solid var(--hair);
+}
+.shutdown-eyebrow {
+  font-size: 0.66rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.shutdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 26px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid color-mix(in oklab, var(--accent-a) 40%, transparent);
+  border-radius: 100px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: background 0.3s, border-color 0.3s, transform 0.3s var(--ease-out);
+}
+.shutdown-btn svg { width: 17px; height: 17px; }
+.shutdown-btn:hover {
+  background: color-mix(in oklab, var(--accent-a) 26%, transparent);
+  border-color: var(--accent-a);
+  transform: translateY(-2px);
+}
+.shutdown-btn:focus-visible { outline: 2px solid var(--accent-b); outline-offset: 3px; }
+.shutdown-note { font-size: 0.7rem; color: var(--text-faint); }
+
+/* ─────────── CRT power-off ───────────
+   The picture collapses vertically into a bright line, the line collapses
+   horizontally into a point, and the point fades. */
+.pwr-off {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: none;
+  place-items: center;
+  background: #000;
+  pointer-events: none;
+}
+.pwr-off.on { display: grid; pointer-events: auto; animation: pwrBlack 0.9s linear forwards; }
+@keyframes pwrBlack {
+  0% { opacity: 0; }
+  16% { opacity: 1; }
+  100% { opacity: 1; }
+}
+.pwr-line {
+  width: min(78vw, 1100px);
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, #fff 12%, #fff 88%, transparent);
+  box-shadow: 0 0 26px 6px rgba(190, 220, 255, 0.75);
+  opacity: 0;
+}
+.pwr-off.on .pwr-line { animation: pwrCollapse 0.9s cubic-bezier(0.6, 0, 0.3, 1) forwards; }
+@keyframes pwrCollapse {
+  0%   { opacity: 0; transform: scaleX(1) scaleY(0.2); }
+  18%  { opacity: 1; transform: scaleX(1) scaleY(1); }
+  62%  { opacity: 1; transform: scaleX(0.5) scaleY(1); }
+  88%  { opacity: 1; transform: scaleX(0.012) scaleY(1.6); }
+  100% { opacity: 0; transform: scaleX(0.006) scaleY(0.5); }
+}
+
+/* ─────────── sleep ─────────── */
+.pwr-sleep {
+  position: fixed;
+  inset: 0;
+  z-index: 19000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #04010c;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.55s var(--ease-out);
+}
+.pwr-sleep[hidden] { display: none; }
+.pwr-sleep.on { opacity: 1; }
+.pwr-sleep::before {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  background:
+    radial-gradient(38% 38% at 28% 30%, color-mix(in oklab, var(--accent-a) 85%, transparent), transparent 62%),
+    radial-gradient(42% 42% at 72% 58%, color-mix(in oklab, var(--accent-b) 85%, transparent), transparent 62%),
+    radial-gradient(34% 34% at 48% 82%, #f472b6cc, transparent 62%),
+    radial-gradient(30% 30% at 82% 18%, #fbbf2499, transparent 62%);
+  filter: blur(70px);
+  opacity: 0.55;
+  animation: pwrDrift 26s ease-in-out infinite alternate;
+}
+@keyframes pwrDrift {
+  0%   { transform: translate3d(-4%, -3%, 0) rotate(0deg) scale(1); }
+  50%  { transform: translate3d(5%, 4%, 0) rotate(8deg) scale(1.14); }
+  100% { transform: translate3d(-3%, 5%, 0) rotate(-6deg) scale(1.05); }
+}
+.pwr-sleep-inner { position: relative; z-index: 1; text-align: center; }
+.pwr-sleep-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 7vw, 5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+  animation: pwrBreathe 4.5s ease-in-out infinite;
+}
+.pwr-sleep-hint {
+  margin-top: 14px;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  animation: pwrBreathe 4.5s ease-in-out infinite 0.5s;
+}
+@keyframes pwrBreathe { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+
+/* stowed rather than removed, so the power menu can bring it back */
+.boot.stowed { display: none; }
+
+html.fx-off .pwr-sleep::before,
+html.fx-off .pwr-sleep-title,
+html.fx-off .pwr-sleep-hint { animation: none; }
+
+@media (max-width: 640px) {
+  .os-power-menu { min-width: 160px; }
+  .shutdown-btn { padding: 12px 20px; font-size: 0.84rem; }
+}
