@@ -125,7 +125,7 @@
     setTimeout(() => { if (mode === 'pending') mode = 'transform'; }, 2500);
 
     /* ── transform fallback ── */
-    const UNIT_SEL = '.hero-char, .btn, .nav-link, .nav-logo, .os-stat, .hero-sub';
+    const UNIT_SEL = '.hero-char, .btn, .nav-link, .nav-logo, .os-stat, .hero-sub, .sp-unit, .hl';
     function unitsFor(t) {
       if (t.units) return t.units;
       /* Display type only. Body copy used to be split into word spans so the

@@ -77,11 +77,10 @@
     return [strip(html[0]), html.length > 1 ? strip(html.slice(1).join(' ')) : ''];
   };
 
-  const items = Array.from(track.querySelectorAll('.pcard')).map((card, i) => {
+  const items = Array.from(track.querySelectorAll('.pcard')).map((card) => {
     const a = card.querySelector('a[href]');
     const [name, sub] = splitName(card.querySelector('h3'));
     return {
-      idx: flat(card.querySelector('.pcard-idx')) || String(i + 1),
       name,                                   // the only thing drawn on the globe
       sub,
       desc: flat(card.querySelector('p')),
@@ -93,8 +92,8 @@
   if (items.length < 2) return;
 
   const N = items.length;
-  const accentA = section.dataset.a || '#22d3ee';
-  const accentB = section.dataset.b || '#a855f7';
+  const accentA = section.dataset.a || '#E8A33D';
+  const accentB = section.dataset.b || '#F7D08C';
 
   /* ── where each project sits on the planet ──
      Longitudes evenly spaced so one scroll of the section is one rotation.
@@ -414,10 +413,10 @@
   let step = -1;
   let dragging = false, moved = 0, lastX = 0, lastY = 0;
 
-  const hudIdx = hud.querySelector('.orbit-idx');
   const hudTitle = hud.querySelector('.orbit-title');
   const hudSub = hud.querySelector('.orbit-sub');
   const hudDesc = hud.querySelector('.orbit-desc');
+  const hudDiagram = hud.querySelector('.orbit-diagram');
   const hudChips = hud.querySelector('.orbit-chips');
   const hudLink = hud.querySelector('.orbit-link');
 
@@ -428,10 +427,11 @@
     step = k;
     const it = items[k];
     hud.classList.remove('in');
-    hudIdx.textContent = it.idx;
     hudTitle.textContent = it.name;
     hudSub.textContent = it.sub || '';
     hudDesc.textContent = it.desc;
+    // the schema is the payload: the globe is only the door to it
+    if (hudDiagram && window.ProjectSchema) window.ProjectSchema.paint(hudDiagram, it.name);
     hudChips.innerHTML = '';
     it.chips.forEach((t) => {
       const s = document.createElement('span');
@@ -464,7 +464,7 @@
      and the globe came out as a thin vertical sliver. A window resize was the
      only thing that ever re-ran this, and pinning is not one. */
   const size = () => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, (window.__gfx && window.__gfx.dprCap) || 2);
     const cw = canvas.clientWidth, ch = canvas.clientHeight;
     if (cw < 2 || ch < 2) return;
     const bw = Math.round(cw * dpr), bh = Math.round(ch * dpr);

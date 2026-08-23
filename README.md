@@ -19,7 +19,10 @@ bar, draggable window, magnifying dock, planetary wallpaper. Scroll, and it hand
 over to a **Swiss-grid editorial document** — twelve columns, hairline rules, display
 type, and a generative background that reshapes itself section by section.
 
-Both halves share one cursor: a small black hole that bends whatever it passes over.
+Both halves share one cursor: a small black hole that bends whatever it passes over,
+and one colour. The page owns a single sodium amber that shifts in brightness and
+temperature as you scroll, over a ground kept deliberately cool so the accent is the
+only warm thing on screen.
 
 ---
 
@@ -59,8 +62,16 @@ Two details that make it work:
 - Each warped element owns its filter. The patch sits in the element's *own* user
   space, so a shared node would put the second element's warp around the wrong point.
 
+The hole is a cursor, not a wallpaper feature, so the warp doesn't stop at the hero.
+It tracks the pointer directly and only defers to the starfield's centre while the
+starfield is actually drawing — which is what keeps one hole shared between canvas and
+copy up top, and lets the lens go on reading display type all the way down the page.
+Passing it over the research pull-quote bends a sentence about errors that don't
+disappear but change shape.
+
 Displacement filters are cheap on some machines and not on others, so the warp watches
-its own frame budget and retires permanently if it can't hold 30 ms.
+its own frame budget and retires permanently if it can't hold 30 ms. Coarse pointers
+never build it at all.
 
 → [`js/textlens.js`](js/textlens.js)
 
@@ -83,7 +94,8 @@ settles in ~1.8 s with under 1% overshoot, and runs identically at 60 Hz and 144
 |---|---|
 | **Boot sequence** | `PRESS START` types out real source describing how the page works, syntax-highlighted by a small TypeScript tokenizer written for the purpose |
 | **Stack matrix** | Hovering a cell wires its row and column; clicking **permutes** them, FLIP-animated, with the grid padded to a full rectangle so a swap can't tear holes through it |
-| **Palette morphing** | Accents are registered with `@property` as real `<color>` types, so the browser interpolates them and every gradient, border and glow on the page shifts together as you scroll |
+| **Palette morphing** | Accents are registered with `@property` as real `<color>` types, so the browser interpolates them and every gradient, border and glow on the page shifts together as you scroll. Ten sections, one hue, a deliberate luminance arc rather than ten different colours |
+| **Project schemas** | Each build draws its own architecture from a declarative spec: tiers become rows, the layout spreads them, and the same spec generates the text description a screen reader gets |
 | **Display type** | The masthead sizes itself off its own column with container query units, instead of guessing at viewport breakpoints |
 | **Builds gallery** | Vertical scroll pans a pinned horizontal track, releasing back to a normal stack when there isn't the height for it |
 | **Console** | A working shell with command parsing, history and tab-completion — everything on the page is queryable from it |
@@ -173,6 +185,49 @@ displacement filter. Doing both on one element renders nothing useful: CSS appli
 back into a rectangle. The ring lives in a nested element so the mask happens
 underneath the filter — the only arrangement where any of the crackle escapes the box.
 
+### Enter meant the opposite of what the button said
+
+The boot screen has a START button and a SKIP button. Pressing Enter while SKIP had
+focus started the boot sequence.
+
+A window-level `keydown` handler claimed Enter to start the boot, without asking what
+had focus. Both controls are real `<button>` elements, so the browser was already
+going to turn Enter into a click on whichever one was focused — the handler simply got
+there first and called `run()` before the click could fire. The visible effect was a
+button that did the opposite of its label, and a keyboard visitor with no way past the
+gate except sitting through the whole sequence.
+
+### A diagram that ignored the palette entirely
+
+The case-study architecture drawing reads the live accent every frame. It rendered
+violet in every section, including the green one and the amber one.
+
+`--accent-a` is registered with `@property`. That registration is what makes it
+interpolate — and it also means `getPropertyValue` hands back the *computed* value,
+`rgb(184, 122, 40)`, rather than the hex that was authored. The canvas helper parsed
+that with `parseInt(v, 16)`, got `NaN`, and fell through to its hardcoded fallback.
+The fallback was the old violet, which looked enough like a deliberate choice to
+survive every visual pass over it.
+
+### A selector that could never match anything
+
+`html.fx-off :root { transition: none; }` was there to stop the palette interpolating
+when effects are switched off.
+
+`:root` *is* `html`. A descendant combinator between the two asks for an html element
+inside an html element, which no document contains. The rule parsed, validated, and
+never applied. Turning effects off stopped every animation on the page except the one
+that rule was written for.
+
+### Focus stranded behind the boot screen
+
+Finishing the boot left the keyboard in the middle of the document.
+
+Focus was still on the button inside the boot overlay when it closed, and Tab resumes
+from wherever focus is — so the next press went to whatever followed the overlay in
+source order, skipping the skip link and the entire nav. Nothing looked wrong, because
+nothing looks wrong until you try to navigate without a mouse.
+
 ---
 
 ## Structure
@@ -190,16 +245,20 @@ js/
   main.js           boot sequence, hyperlapse, cursor, terminal, command palette
   bolt.js           cursor-reactive lightning borders on the content cards
   orbit.js          the builds globe — WebGL2, one landmass per project
+  schema.js         per-project architecture diagrams, generated as inline SVG
   power.js          sleep, restart, shut down
-assets/icons/       local SVG logos — no icon CDN
+assets/icons/       local SVG logos and Tabler glyphs — no icon CDN
 ```
 
 Sections declare their own background. Adding one is a matter of markup:
 
 ```html
-<section data-field="lattice" data-a="#22d3ee" data-b="#a855f7"
+<section data-field="lattice" data-a="#B87A28" data-b="#D9A24E"
          data-morph="0.9" data-density="0.34" data-op="0.6">
 ```
+
+`data-a` and `data-b` are that section's step on the amber arc: deeper for the long
+reads, brighter at the two peaks and at the call to action.
 
 ---
 
@@ -225,8 +284,14 @@ Then visit `http://localhost:5173`.
 - Every animated surface exposes a still frame rather than freezing mid-motion.
 - Body copy and small monospace labels are sized and contrasted to stay readable over
   a live canvas; the background pulls itself back behind text.
-- Keyboard: `⌘K` / `Ctrl+K` opens the command palette, `Enter` permutes the stack
-  matrix, and the dock and console are reachable by tab.
+- Keyboard: a skip link is the first stop on Tab, `⌘K` / `Ctrl+K` opens the command
+  palette, `Enter` permutes the stack matrix, and the dock and console are reachable
+  by tab. Finishing the boot hands focus to `<main>` rather than leaving it inside the
+  overlay.
+- Every control has a visible focus ring, including the two inputs that had removed
+  theirs, and every tap target clears 24 × 24 CSS pixels on touch.
+- Diagrams carry a generated text description of the same graph, built from the spec
+  so it cannot drift from the drawing.
 
 Layout is verified from 360 px to 1920 px with no horizontal overflow.
 
@@ -238,6 +303,15 @@ Built for current Chrome, Edge, Safari and Firefox. A few modern features degrad
 rather than break: `@property` colour interpolation falls back to instant palette
 swaps, container query units fall back to a viewport-based clamp, and the text warp
 removes itself if the frame budget says no.
+
+Some of that degradation is deliberate rather than defensive. Interpolating the accent
+cascades a colour transition through every element that resolves through it, and
+colour is not compositable, so it repaints — measured at roughly half the main thread
+for the length of the transition on a throttled phone. Touch devices get the same
+palette applied instantly. The canvases read one graphics budget, decided once at
+load, that lowers pixel ratio and particle density on coarse-pointer and low-core
+machines: a phone was previously drawing desktop-tuned particle floors into twice as
+many device pixels as it has CSS ones.
 
 ---
 

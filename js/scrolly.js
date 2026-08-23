@@ -32,13 +32,30 @@
   /* The same lens applied to the hero copy, so the hole warps words as well
      as stars. Driven off the sky's hole so both share one centre. */
   (function textWarp() {
-    if (!sky || !window.TextLens || isCoarse) return;
+    if (!window.TextLens || isCoarse) return;
     if (!$('[data-warp]')) return;
     const lens = window.TextLens({ radius: 52 });
+
+    /* The starfield only runs over the first screen, and `lensState().live`
+       is false whenever it is stopped — so the warp used to die at the hero
+       handover and the rest of the page never saw the lens at all. The hole
+       is a cursor, not a wallpaper feature: track the pointer directly and
+       defer to the sky's centre only while the sky is actually drawing, so
+       the hero still shares one hole between canvas and copy. */
+    const ptr = { x: -9999, y: -9999, on: false };
+    const move = (e) => { ptr.x = e.clientX; ptr.y = e.clientY; ptr.on = true; };
+    window.addEventListener('pointermove', move, { passive: true });
+    window.addEventListener('pointerleave', () => { ptr.on = false; }, { passive: true });
+    window.addEventListener('blur', () => { ptr.on = false; });
+
     let raf;
     const tick = (now) => {
-      const s = sky.lensState();
-      lens.update(s.x, s.y, s.live && motionOn(), now);
+      const s = sky && sky.lensState ? sky.lensState() : null;
+      const useSky = s && s.live;
+      const x = useSky ? s.x : ptr.x;
+      const y = useSky ? s.y : ptr.y;
+      const on = (useSky || ptr.on) && motionOn();
+      lens.update(x, y, on, now);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -51,8 +68,8 @@
     if (!el || el === currentSection) return;
     currentSection = el;
 
-    const a = el.dataset.a || '#a855f7';
-    const b = el.dataset.b || '#22d3ee';
+    const a = el.dataset.a || '#E8A33D';
+    const b = el.dataset.b || '#F7D08C';
 
     // Global accent swap — @property makes these transition as colours,
     // so every gradient, border and glow on the page morphs together.
@@ -82,8 +99,6 @@
       void rail.offsetWidth;
       rail.classList.add('swap');
     }
-    const railNum = $('#railNum');
-    if (railNum && el.dataset.num) railNum.textContent = el.dataset.num;
   };
 
   if (themed.length) {
@@ -288,11 +303,22 @@
     const css = (name, fb) =>
       getComputedStyle(de).getPropertyValue(name).trim() || fb;
 
-    const rgba = (hex, a) => {
-      const s = hex.replace('#', '').trim();
-      const v = s.length === 3 ? s.split('').map((c) => c + c).join('') : s;
+    /* --accent-a is a registered @property, so getPropertyValue hands back the
+       COMPUTED value — `rgb(184, 122, 40)`, never the authored hex. Parsing
+       that as base-16 gives NaN, and this used to fall back to a hardcoded
+       violet, which is why the diagram stayed purple no matter which section
+       you were in. Accept both forms. */
+    const rgba = (col, a) => {
+      const c = String(col).trim();
+      const m = c.match(/rgba?\(([^)]+)\)/i);
+      if (m) {
+        const [r, g, b] = m[1].split(',').map((v) => parseFloat(v) || 0);
+        return `rgba(${r | 0},${g | 0},${b | 0},${a})`;
+      }
+      const s = c.replace('#', '');
+      const v = s.length === 3 ? s.split('').map((ch) => ch + ch).join('') : s;
       const n = parseInt(v, 16);
-      if (Number.isNaN(n)) return `rgba(168,85,247,${a})`;
+      if (Number.isNaN(n)) return `rgba(232,163,61,${a})`;
       return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
     };
 
@@ -353,8 +379,8 @@
       stageF = lerp(stageF, stage, 0.085);
       ctx.clearRect(0, 0, W, H);
 
-      const A = css('--accent-a', '#6366f1');
-      const B = css('--accent-b', '#38bdf8');
+      const A = css('--accent-a', '#E8A33D');
+      const B = css('--accent-b', '#F7D08C');
       const now = performance.now();
       const fontMono = (px, weight) =>
         `${weight || 500} ${Math.round(px * S)}px "JetBrains Mono", ui-monospace, monospace`;
