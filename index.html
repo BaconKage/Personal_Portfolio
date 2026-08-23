@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070E" />
   <script>
     /* Resolve motion preference before first paint (no flash of animation) */
     (function () {
@@ -13,20 +14,47 @@
         document.documentElement.classList.add(on ? 'fx-on' : 'fx-off');
       } catch (e) { document.documentElement.classList.add('fx-on'); }
     })();
+
+    /* One graphics budget, decided once and read by every canvas.
+
+       The three canvases each sized themselves off devicePixelRatio capped at
+       2 and carried particle-count floors tuned for a desktop window. On a
+       phone the floors dominated: a 375x812 screen still got 70 field nodes
+       and 200 stars, drawn into twice as many device pixels as it has CSS
+       ones, which is how a mid-tier device ended up with a saturated main
+       thread. Coarse pointers and low-core machines get fewer pixels and
+       fewer things drawn into them. */
+    (function () {
+      var coarse = false, cores = 8, mem = 8;
+      try {
+        coarse = matchMedia('(pointer: coarse)').matches;
+        cores = navigator.hardwareConcurrency || 8;
+        mem = navigator.deviceMemory || 8;
+      } catch (e) {}
+      var weak = coarse || cores <= 4 || mem <= 4;
+      window.__gfx = {
+        coarse: coarse,
+        weak: weak,
+        dprCap: weak ? 1.5 : 2,
+        density: weak ? 0.55 : 1
+      };
+    })();
   </script>
-  <title>Shubhang Srinivas Varda — Full-Stack &amp; AI Engineer</title>
-  <meta name="description" content="Shubhang Srinivas Varda — full-stack and AI/ML engineer in Bengaluru. Production computer vision, LLM products, and a peer-reviewed paper in Springer Nature's AI &amp; Society." />
+  <title>Shubhang Srinivas Varda - Full-Stack &amp; AI Engineer</title>
+  <meta name="description" content="Shubhang Srinivas Varda is a full-stack and AI/ML engineer in Bengaluru. Production computer vision, LLM products, and a peer-reviewed paper in Springer Nature's AI &amp; Society." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=95" />
-  <link rel="stylesheet" href="css/editorial.css?v=95" />
+  <link rel="stylesheet" href="css/style.css?v=119" />
+  <link rel="stylesheet" href="css/editorial.css?v=119" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
 </head>
 <body>
 
+  <a class="skip-link" href="#main">Skip to content</a>
+
   <!-- ═══════════════════════════════════════════════════
-       BOOT SEQUENCE — start gate → compile → wipe to site
+       BOOT SEQUENCE: start gate → compile → wipe to site
        ═══════════════════════════════════════════════════ -->
   <div class="boot" id="boot">
     <canvas id="bootCanvas" aria-hidden="true"></canvas>
@@ -37,14 +65,13 @@
       <div class="boot-hud mono">
         <span>SV_PORTFOLIO</span>
         <span class="boot-hud-mid" id="bootStatus">awaiting input</span>
-        <span>v2026.1</span>
       </div>
 
       <!-- IDLE -->
       <div class="boot-gate" id="bootGate">
         <p class="boot-name">SHUBHANG</p>
         <p class="boot-name boot-name-2">SRINIVAS VARDA</p>
-        <p class="boot-role mono">Full-Stack &amp; AI Engineer — Bengaluru, India</p>
+        <p class="boot-role mono">Full-Stack &amp; AI Engineer · Bengaluru, India</p>
         <button class="boot-start" id="bootStart" type="button">
           <span class="mono">PRESS START</span>
         </button>
@@ -97,7 +124,6 @@
 
   <!-- ═══════════ MARGIN RAIL ═══════════ -->
   <div class="rail" aria-hidden="true">
-    <span class="rail-num mono" id="railNum">00</span>
     <span class="rail-line"></span>
     <span class="rail-label mono" id="railLabel">index</span>
   </div>
@@ -115,15 +141,15 @@
       <a href="#projects" class="nav-link" data-nav>Builds</a>
       <a href="#research" class="nav-link" data-nav>Research</a>
       <button class="nav-cmdk" id="navCmdk" aria-label="Open command palette"><kbd>⌘</kbd>K</button>
-      <a href="#contact" class="nav-cta" data-magnetic>Let's Talk <span class="cta-arrow">→</span></a>
+      <a href="#contact" class="nav-cta" data-magnetic>Get in touch <span class="cta-arrow">→</span></a>
     </nav>
 
-    <!-- menu-bar status cluster — only visible while the desktop is up -->
+    <!-- menu-bar status cluster: only visible while the desktop is up -->
     <div class="os-status mono" aria-hidden="true">
       <span class="os-stat os-stat-net" title="Connected">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.5a9 9 0 0 1 14 0"/><path d="M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor" stroke="none"/></svg>
       </span>
-      <span class="os-stat os-stat-batt" title="Running on caffeine">
+      <span class="os-stat os-stat-batt" title="Battery">
         <svg width="22" height="15" viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="2.5" width="21" height="11" rx="3"/><path d="M24 6.5v3" stroke-linecap="round"/><rect x="3" y="4.5" width="14" height="7" rx="1.5" fill="currentColor" stroke="none"/></svg>
       </span>
       <span class="os-stat">Bengaluru</span>
@@ -136,7 +162,7 @@
   </header>
 
   <!-- Outside the nav on purpose. The nav is a warp target, and an SVG filter
-     displaces how a thing looks without moving where it actually is — so a
+     displaces how a thing looks without moving where it actually is, so a
      button in there slides away from the cursor chasing it while the real hit
      area stays put. The dock is excluded for the same reason. Also outside
      .os-status, which is aria-hidden and would swallow the button's name. -->
@@ -160,15 +186,14 @@
     </div>
   </div>
 
-  <main>
+  <main id="main" tabindex="-1">
 
   <!-- ═══════════════════════════════════════════════════
-       HERO — editorial masthead
+       HERO: editorial masthead
        ═══════════════════════════════════════════════════ -->
   <section class="hero" id="hero"
-           data-field="net" data-a="#a855f7" data-b="#22d3ee"
-           data-morph="0" data-density="1" data-link="165" data-pulse="0.05" data-op="0"
-           data-num="00" data-label="index">
+           data-field="net" data-a="#E8A33D" data-b="#F7D08C"
+           data-morph="0" data-density="1" data-link="165" data-pulse="0.05" data-op="0" data-label="index">
     <div class="swiss masthead" data-warp>
 
       <div class="mh-lede os-hero">
@@ -182,22 +207,16 @@
           </h1>
         </div>
 
-        <p class="hero-sub">
-          <span class="mono hero-prompt">&gt;_</span>
-          <span id="typewriter" class="typewriter"></span><span class="type-caret">▊</span>
-        </p>
         <p class="mh-desc">
-          I build software with an AI core and I take it all the way to shipped. A voice-deepfake
-          detector served on GPU infrastructure, a simulator where trainee doctors rehearse hard
-          conversations, a language app families abroad use with their kids, and a gym platform
-          heading into pilot. <strong>Deployed, and in front of real users.</strong>
+          I build software with an AI core and take it all the way to shipped,
+          <strong>in front of real users.</strong>
         </p>
         <div class="hero-actions">
           <a href="#casestudy" class="btn btn-primary" data-magnetic>
             <span>Read the case study</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
-          <a href="mailto:vardashubhang@gmail.com" class="btn btn-ghost" data-magnetic>
+          <a href="#contact" class="btn btn-ghost" data-magnetic>
             <span>Get in touch</span>
           </a>
         </div>
@@ -212,7 +231,7 @@
             <span class="tl-dot tl-yellow"></span>
             <span class="tl-dot tl-green"></span>
           </span>
-          <span class="os-win-title mono">identity — ~/shubhang</span>
+          <span class="os-win-title mono">identity · ~/shubhang</span>
         </div>
         <div class="os-win-body">
           <div class="idw-head">
@@ -226,7 +245,7 @@
           <div class="idw-batt">
             <span class="idw-batt-top mono">
               <span>Caffeine</span>
-              <span class="idw-batt-pct" id="battPct">—</span>
+              <span class="idw-batt-pct" id="battPct">--</span>
             </span>
             <span class="idw-batt-cell"><i class="idw-batt-fill" id="battFill"></i></span>
           </div>
@@ -260,18 +279,16 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════
-       00 · CONSOLE
+       CONSOLE
        ═══════════════════════════════════════════════════ -->
   <section class="section" id="explore"
-           data-field="matrix" data-a="#818cf8" data-b="#22d3ee"
-           data-morph="0.9" data-density="0.42" data-link="120" data-pulse="0.07" data-op="0.62"
-           data-num="00" data-label="console">
+           data-field="matrix" data-a="#C98A33" data-b="#E3B266"
+           data-morph="0.9" data-density="0.42" data-link="120" data-pulse="0.07" data-op="0.62" data-label="console">
     <div class="swiss">
       <header class="sec-head">
-        <span class="sec-num mono">00</span>
         <h2 class="sec-title" data-split="words">Ask directly</h2>
         <p class="sec-lede">
-          A working shell, not a decoration — real command parsing, history and
+          A working shell, not a decoration: real command parsing, history and
           tab-completion. Everything below is queryable from here.
         </p>
         <span class="sec-rule"></span>
@@ -283,7 +300,7 @@
             <span class="tl-dot tl-red"></span>
             <span class="tl-dot tl-yellow"></span>
             <span class="tl-dot tl-green"></span>
-            <span class="terminal-title mono">shubhang@portfolio — zsh</span>
+            <span class="terminal-title mono">shubhang@portfolio · zsh</span>
           </div>
           <div class="terminal-body" id="terminalBody">
             <div class="term-input-line" id="termInputLine">
@@ -308,15 +325,13 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════
-       01 · PROFILE
+       PROFILE
        ═══════════════════════════════════════════════════ -->
   <section class="section" id="about"
-           data-field="net" data-a="#a855f7" data-b="#38bdf8"
-           data-morph="0.15" data-density="0.36" data-link="170" data-pulse="0.045" data-op="0.56"
-           data-num="01" data-label="profile">
+           data-field="net" data-a="#E09A38" data-b="#F0C078"
+           data-morph="0.15" data-density="0.36" data-link="170" data-pulse="0.045" data-op="0.56" data-label="profile">
     <div class="swiss">
       <header class="sec-head">
-        <span class="sec-num mono">01</span>
         <h2 class="sec-title" data-split="words">Profile</h2>
         <span class="sec-rule"></span>
       </header>
@@ -324,7 +339,7 @@
       <div class="ed-lede reveal-up">
         <p class="drop-cap">
           Final-year B.Tech CSE (Data Science &amp; Engineering) at <strong>RV University,
-          Bengaluru</strong>, holding two engineering internships at once — an AI gym platform
+          Bengaluru</strong>, holding two engineering internships at once: an AI gym platform
           at <strong>Catalyst To BeActive</strong> and clinical communication simulators at
           <strong>First Drop Theatre</strong>.
         </p>
@@ -339,7 +354,7 @@
         <p>
           That last part is on the record. I co-authored a peer-reviewed paper in Springer
           Nature's <em>AI &amp; Society</em> on why AI's errors don't disappear as systems
-          scale — they change shape. It's why I design for failure modes before demos.
+          scale. They change shape. It's why I design for failure modes before demos.
         </p>
         <p>
           Away from the editor I founded my university's Model UN Society, which is where I
@@ -349,7 +364,7 @@
           <span class="tag mono">RV University '27</span>
           <span class="tag mono">EN · KN · HI · TE</span>
           <span class="tag mono">Springer Nature author</span>
-          <span class="tag mono">INNOVATEX'26 — 2nd place</span>
+          <span class="tag mono">INNOVATEX'26, 2nd place</span>
         </div>
       </div>
 
@@ -375,19 +390,17 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════
-       02 · CASE STUDY — MyGym
+       CASE STUDY: MyGym
        ═══════════════════════════════════════════════════ -->
   <section class="section scrolly-section" id="casestudy"
-           data-field="lattice" data-a="#6366f1" data-b="#38bdf8"
-           data-morph="1" data-density="0.32" data-link="185" data-speed="0.8" data-pulse="0.07" data-op="0.5"
-           data-num="02" data-label="case study">
+           data-field="lattice" data-a="#B87A28" data-b="#D9A24E"
+           data-morph="1" data-density="0.32" data-link="185" data-speed="0.8" data-pulse="0.07" data-op="0.5" data-label="case study">
     <div class="swiss">
       <header class="sec-head">
-        <span class="sec-num mono">02</span>
-        <h2 class="sec-title" data-split="words">Case study — MyGym</h2>
+        <h2 class="sec-title" data-split="words" data-warp>Case study: MyGym</h2>
         <p class="sec-lede">
           One system for running a gym, replacing the nine apps most of them juggle.
-          No jargon below — scroll and the system assembles itself.
+          No jargon below. Scroll and the system assembles itself.
         </p>
         <span class="sec-rule"></span>
       </header>
@@ -403,8 +416,7 @@
       </div>
 
       <div class="scrolly-steps">
-        <article class="step" data-step="0" data-caption="before — nine apps, no system">
-          <span class="step-idx mono">01 — the problem</span>
+        <article class="step" data-step="0" data-caption="before: nine apps, no system">
           <h3>Nine apps, none of them talking</h3>
           <p>
             A gym runs on WhatsApp for messages, a spreadsheet for leads, Google Forms for
@@ -419,7 +431,6 @@
         </article>
 
         <article class="step" data-step="1" data-caption="one member, one record">
-          <span class="step-idx mono">02 — the idea</span>
           <h3>One person, one record</h3>
           <p>
             MyGym follows a single member the whole way: first enquiry, consultation, sale,
@@ -427,13 +438,12 @@
           </p>
           <p>
             Each stage is linked to the one before it. When someone buys a package, their
-            coach receives <strong>the actual sale</strong> — not a copy of it retyped into
+            coach receives <strong>the actual sale</strong>, not a copy of it retyped into
             another app. Nothing is entered twice, so nothing drifts out of sync.
           </p>
         </article>
 
-        <article class="step" data-step="2" data-caption="workspaces — everyone sees their own job">
-          <span class="step-idx mono">03 — the people</span>
+        <article class="step" data-step="2" data-caption="workspaces: everyone sees their own job">
           <h3>Everyone sees only their own job</h3>
           <p>
             Sales staff get leads and consultations. Finance sees payments and revenue.
@@ -450,11 +460,10 @@
           </div>
         </article>
 
-        <article class="step" data-step="3" data-caption="the spine — one source of truth">
-          <span class="step-idx mono">04 — the build</span>
+        <article class="step" data-step="3" data-caption="the spine: one source of truth">
           <h3>One place that decides what's true</h3>
           <p>
-            A single service holds every rule — who may see what, which steps are legal, what
+            A single service holds every rule: who may see what, which steps are legal, what
             the totals are. The web app and the mobile app both ask it, and neither is
             allowed to invent an answer of its own.
           </p>
@@ -470,13 +479,12 @@
           </div>
         </article>
 
-        <article class="step" data-step="4" data-caption="the hard part — refusing bad data">
-          <span class="step-idx mono">05 — the hard part</span>
+        <article class="step" data-step="4" data-caption="the hard part: refusing bad data">
           <h3>Refusing to show a wrong number</h3>
           <p>
             The genuinely difficult part wasn't features. It was trust. If the server sends
             back something malformed, the app treats it as a failure instead of displaying
-            it — because <strong>a wrong payment figure does more damage than a visible
+            it, because <strong>a wrong payment figure does more damage than a visible
             error</strong>.
           </p>
           <p>
@@ -490,8 +498,7 @@
           </div>
         </article>
 
-        <article class="step" data-step="5" data-caption="demonstrated — pilot next">
-          <span class="step-idx mono">06 — where it stands</span>
+        <article class="step" data-step="5" data-caption="demonstrated: pilot next">
           <h3>Demonstrated, heading to pilot</h3>
           <p>
             Web app, mobile app, API, database, seeded demo data and automated tests, all
@@ -499,7 +506,7 @@
             first client and is now being hardened into a controlled pilot.
           </p>
           <p>
-            Built with a team of three. I'm deliberate about that wording — a demo that
+            Built with a team of three. I'm deliberate about that wording. A demo that
             works and a system safe to run someone's business on are not the same thing, and
             saying so is part of the job.
           </p>
@@ -512,19 +519,17 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════
-       03 · STACK
+       STACK
        ═══════════════════════════════════════════════════ -->
   <section class="section" id="skills"
-           data-field="matrix" data-a="#10b981" data-b="#22d3ee"
-           data-morph="0.95" data-density="0.38" data-link="135" data-pulse="0.07" data-op="0.58"
-           data-num="03" data-label="stack">
+           data-field="matrix" data-a="#EFAE45" data-b="#F8D79B"
+           data-morph="0.95" data-density="0.38" data-link="135" data-pulse="0.07" data-op="0.58" data-label="stack">
     <div class="swiss">
       <header class="sec-head">
-        <span class="sec-num mono">03</span>
         <h2 class="sec-title" data-split="words">The stack</h2>
         <p class="sec-lede">
           What I actually reach for, not everything I've opened once. Hover to wire a
-          cell's row and column — <strong>click to permute them.</strong>
+          cell's row and column. <strong>Click to permute them.</strong>
         </p>
         <span class="sec-rule"></span>
       </header>
@@ -539,28 +544,26 @@
         </div>
         <div class="stack-matrix reveal-up" id="stackMatrix"
              tabindex="0" role="group"
-             aria-label="Technology matrix — press Enter to permute rows and columns"></div>
+             aria-label="Technology matrix. Press Enter to permute rows and columns"></div>
       </div>
     </div>
   </section>
 
   <!-- ═══════════════════════════════════════════════════
-       04 · EXPERIENCE
+       EXPERIENCE
        ═══════════════════════════════════════════════════ -->
   <section class="section" id="experience"
-           data-field="flow" data-a="#f59e0b" data-b="#ec4899"
-           data-morph="0.92" data-density="0.36" data-link="150" data-speed="0.85" data-pulse="0.08" data-op="0.56"
-           data-num="04" data-label="experience">
+           data-field="flow" data-a="#D97F26" data-b="#F0A652"
+           data-morph="0.92" data-density="0.36" data-link="150" data-speed="0.85" data-pulse="0.08" data-op="0.56" data-label="experience">
     <div class="swiss">
       <header class="sec-head">
-        <span class="sec-num mono">04</span>
         <h2 class="sec-title" data-split="words">Experience</h2>
         <span class="sec-rule"></span>
       </header>
 
       <article class="entry reveal-up">
         <div class="entry-meta mono">
-          <span class="entry-date">Jun 2026 — Present</span>
+          <span class="entry-date">Jun 2026 - Present</span>
           <span class="badge badge-live">● ACTIVE</span>
         </div>
         <div class="entry-body">
@@ -588,7 +591,7 @@
 
       <article class="entry reveal-up">
         <div class="entry-meta mono">
-          <span class="entry-date">Mar 2025 — Present</span>
+          <span class="entry-date">Mar 2025 - Present</span>
           <span class="badge badge-live">● ACTIVE</span>
         </div>
         <div class="entry-body">
@@ -600,10 +603,10 @@
             Flask and MongoDB.
           </p>
           <p>
-            The work I'm proudest of is the <strong>real-time workout validation system</strong> —
+            The work I'm proudest of is the <strong>real-time workout validation system</strong>:
             MediaPipe and OpenCV for pose estimation, joint tracking, repetition counting and
-            form correction — plus context-aware chatbots and an NLP-driven diet engine built
-            around Indian food data.
+            form correction. Alongside it, context-aware chatbots and an NLP-driven diet engine
+            built around Indian food data.
           </p>
           <div class="chips chips-sm">
             <span class="chip">React</span><span class="chip">Flutter</span><span class="chip">Flask</span>
@@ -618,28 +621,24 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════
-       05 · BUILDS
+       BUILDS
        ═══════════════════════════════════════════════════ -->
   <section id="projects"
-           data-field="lattice" data-a="#22d3ee" data-b="#a855f7"
-           data-morph="0.9" data-density="0.34" data-link="180" data-pulse="0.055" data-op="0.6"
-           data-num="05" data-label="builds">
+           data-field="lattice" data-a="#E8A33D" data-b="#F7D08C"
+           data-morph="0.9" data-density="0.34" data-link="180" data-pulse="0.055" data-op="0.6" data-label="builds">
     <div class="pin-viewport" id="projViewport">
       <div class="swiss pin-head">
-        <span class="sec-num mono">05</span>
         <h2 class="sec-title">Selected builds</h2>
-        <span class="pin-hint mono">keep scrolling →</span>
       </div>
 
       <div class="pin-track" id="projTrack">
 
         <article class="pcard pcard-lead">
-          <span class="pcard-idx mono">01 / 05</span>
           <span class="badge">FLAGSHIP</span>
           <h3>MyGym<br />Gym Operating System</h3>
           <p>
-            A full-stack platform covering the entire client lifecycle — lead, CRM, consult,
-            sale, billing, coaching, retention — with role-based workspaces for managers,
+            A full-stack platform covering the entire client lifecycle (lead, CRM, consult,
+            sale, billing, coaching, retention) with role-based workspaces for managers,
             coaches, the sales desk and members.
           </p>
           <p class="pcard-note mono">
@@ -658,13 +657,12 @@
         </article>
 
         <article class="pcard">
-          <span class="pcard-idx mono">02 / 05</span>
           <span class="badge badge-live">● LIVE</span>
           <h3>VaniCert<br />Voice Deepfake Detector</h3>
           <p>
             Decides whether a voice sample is human or cloned. Silero-VAD isolates speech from
-            the full stream, an AASIST anti-spoofing model scores it, and a second DSP pass —
-            MFCC, spectral centroid and flux — has to agree before a verdict is returned.
+            the full stream, an AASIST anti-spoofing model scores it, and a second DSP pass
+            (MFCC, spectral centroid and flux) has to agree before a verdict is returned.
           </p>
           <p class="pcard-note mono">
             Two independent signals must concur, which cuts false positives on noisy phone audio.
@@ -680,7 +678,6 @@
         </article>
 
         <article class="pcard">
-          <span class="pcard-idx mono">03 / 05</span>
           <span class="badge">SOLO BUILD</span>
           <h3>FirstDropAI<br />Clinical Simulator</h3>
           <p>
@@ -689,7 +686,7 @@
             with a report scoring empathy, clarity, listening and composure.
           </p>
           <p class="pcard-note mono">
-            Written for Indian clinical settings specifically — multiple languages, and the
+            Written for Indian clinical settings specifically: multiple languages, and the
             family dynamics that actually occur in the room.
           </p>
           <div class="chips chips-sm">
@@ -703,7 +700,6 @@
         </article>
 
         <article class="pcard">
-          <span class="pcard-idx mono">04 / 05</span>
           <span class="badge badge-live">● LIVE</span>
           <h3>BhashaBuddy<br />Mother Tongue for NRI Kids</h3>
           <p>
@@ -724,7 +720,6 @@
         </article>
 
         <article class="pcard">
-          <span class="pcard-idx mono">05 / 05</span>
           <span class="badge">AI × VISION</span>
           <h3>Posture Engine<br />&amp; Diet Planner</h3>
           <p>
@@ -740,12 +735,11 @@
             <span class="chip">MediaPipe</span><span class="chip">MongoDB Atlas</span><span class="chip">Figma</span>
           </div>
           <div class="project-links">
-            <span class="muted mono">Solo · Jun 2025 – Jan 2026</span>
+            <span class="muted mono">Solo · Jun 2025 - Jan 2026</span>
           </div>
         </article>
 
         <article class="pcard pcard-end">
-          <span class="pcard-idx mono">·</span>
           <h3>Everything<br />else</h3>
           <p>The side quests, experiments and half-finished ideas all live on GitHub.</p>
           <div class="project-links">
@@ -765,13 +759,13 @@
       <!-- The whole write-up for whatever is facing you, always on screen.
            Scrolling the section is what changes it; nothing is behind a click. -->
       <div class="orbit-hud" id="orbitHud">
-        <span class="orbit-idx mono"></span>
         <h3 class="orbit-title"></h3>
         <span class="orbit-sub mono"></span>
         <p class="orbit-desc"></p>
+        <div class="pdiag orbit-diagram" hidden></div>
         <div class="chips chips-sm orbit-chips"></div>
-        <a class="orbit-link mono" target="_blank" rel="noopener"></a>
-        <span class="orbit-hint mono">scroll to turn the planet · drag to spin · click a landmass to jump</span>
+        <a class="orbit-link mono" target="_blank" rel="noopener" hidden></a>
+        <span class="orbit-hint mono">drag to spin, or click a landmass to jump</span>
       </div>
 
       <div class="pin-progress"><span id="projBar"></span></div>
@@ -779,15 +773,13 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════
-       06 · RESEARCH
+       RESEARCH
        ═══════════════════════════════════════════════════ -->
   <section class="section" id="research"
-           data-field="entropy" data-a="#fbbf24" data-b="#a855f7"
-           data-morph="0.75" data-density="0.42" data-link="155" data-speed="0.65" data-pulse="0.04" data-op="0.6"
-           data-num="06" data-label="research">
+           data-field="entropy" data-a="#EFC162" data-b="#F9DFAC"
+           data-morph="0.75" data-density="0.42" data-link="155" data-speed="0.65" data-pulse="0.04" data-op="0.6" data-label="research">
     <div class="swiss">
       <header class="sec-head">
-        <span class="sec-num mono">06</span>
         <h2 class="sec-title" data-split="words">Research</h2>
         <span class="sec-rule"></span>
       </header>
@@ -799,9 +791,9 @@
         <span>Dec 2025</span>
       </div>
 
-      <blockquote class="pullquote reveal-up">
-        As AI systems grow more complex, errors don't disappear —
-        <span class="hl">they transform into deeper structural uncertainties.</span>
+      <blockquote class="pullquote reveal-up" data-warp>
+        As AI systems grow more complex, errors don't disappear.
+        <span class="hl">They transform into deeper structural uncertainties.</span>
       </blockquote>
 
       <div class="paper-body reveal-up">
@@ -826,37 +818,61 @@
       </div>
 
       <div class="col-full">
+        <!-- icons: Tabler outline, vendored into assets/icons and inlined so
+             they inherit the live section accent through currentColor -->
         <div class="certs-row reveal-up">
           <div class="cert-card">
-            <span class="cert-icon">🥈</span>
+            <svg class="cert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9a6 6 0 1 0 12 0a6 6 0 1 0 -12 0" />
+              <path d="M12 15l3.4 5.89l1.598 -3.233l3.598 .232l-3.4 -5.889" />
+              <path d="M6.802 12l-3.4 5.89l3.598 -.233l1.598 3.232l3.4 -5.889" />
+            </svg>
             <div>
-              <h4>INNOVATEX'26 — 2nd place</h4>
+              <h4>INNOVATEX'26, 2nd place</h4>
               <p class="mono muted">RV University × Dell Technologies. "DellMind", an on-device intelligence layer for predictive hardware health.</p>
             </div>
           </div>
           <div class="cert-card">
-            <span class="cert-icon">☁️</span>
+            <svg class="cert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 6a8 3 0 1 0 16 0a8 3 0 1 0 -16 0" />
+              <path d="M4 6v6a8 3 0 0 0 16 0v-6" />
+              <path d="M4 12v6a8 3 0 0 0 16 0v-6" />
+            </svg>
             <div>
-              <h4>AWS Academy — Data Engineering</h4>
+              <h4>AWS Academy: Data Engineering</h4>
               <p class="mono muted">Pipelines, cloud processing and data security on AWS.</p>
             </div>
           </div>
           <div class="cert-card">
-            <span class="cert-icon">🎓</span>
+            <svg class="cert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15.5 13a3.5 3.5 0 0 0 -3.5 3.5v1a3.5 3.5 0 0 0 7 0v-1.8" />
+              <path d="M8.5 13a3.5 3.5 0 0 1 3.5 3.5v1a3.5 3.5 0 0 1 -7 0v-1.8" />
+              <path d="M17.5 16a3.5 3.5 0 0 0 0 -7h-.5" />
+              <path d="M19 9.3v-2.8a3.5 3.5 0 0 0 -7 0" />
+              <path d="M6.5 16a3.5 3.5 0 0 1 0 -7h.5" />
+              <path d="M5 9.3v-2.8a3.5 3.5 0 0 1 7 0v10" />
+            </svg>
             <div>
-              <h4>NPTEL — Affective Computing</h4>
+              <h4>NPTEL: Affective Computing</h4>
               <p class="mono muted">Elite certificate · 91% · IIIT Delhi.</p>
             </div>
           </div>
           <div class="cert-card">
-            <span class="cert-icon">🧪</span>
+            <svg class="cert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 8.04l-12.122 12.124a2.857 2.857 0 1 1 -4.041 -4.04l12.122 -12.124" />
+              <path d="M7 13h8" />
+              <path d="M19 15l1.5 1.6a2 2 0 1 1 -3 0l1.5 -1.6" />
+              <path d="M15 3l6 6" />
+            </svg>
             <div>
-              <h4>NPTEL — Software Testing</h4>
+              <h4>NPTEL: Software Testing</h4>
               <p class="mono muted">Elite certificate · IIIT Bangalore.</p>
             </div>
           </div>
           <div class="cert-card">
-            <span class="cert-icon">✨</span>
+            <svg class="cert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6.657 18c-2.572 0 -4.657 -2.007 -4.657 -4.483c0 -2.475 2.085 -4.482 4.657 -4.482c.393 -1.762 1.794 -3.2 3.675 -3.773c1.88 -.572 3.956 -.193 5.444 1c1.488 1.19 2.162 3.007 1.77 4.769h.99c1.913 0 3.464 1.56 3.464 3.486c0 1.927 -1.551 3.487 -3.465 3.487h-11.878" />
+            </svg>
             <div>
               <h4>Google Cloud skill badges</h4>
               <p class="mono muted">GenAI apps with Gemini and Streamlit · Speech and language APIs · multimodal AI.</p>
@@ -868,22 +884,20 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════
-       07 · OFF-STACK
+       OFF-STACK
        ═══════════════════════════════════════════════════ -->
   <section class="section" id="beyond"
-           data-field="orbit" data-a="#fb7185" data-b="#fbbf24"
-           data-morph="0.88" data-density="0.38" data-link="145" data-speed="0.85" data-pulse="0.05" data-op="0.58"
-           data-num="07" data-label="off-stack">
+           data-field="orbit" data-a="#B5822F" data-b="#D4A661"
+           data-morph="0.88" data-density="0.38" data-link="145" data-speed="0.85" data-pulse="0.05" data-op="0.58" data-label="off-stack">
     <div class="swiss">
       <header class="sec-head">
-        <span class="sec-num mono">07</span>
         <h2 class="sec-title" data-split="words">Off the stack</h2>
         <span class="sec-rule"></span>
       </header>
 
       <div class="col-full beyond-grid">
         <div class="beyond-card reveal-up">
-          <h3>Founder &amp; President — MUN Society</h3>
+          <h3>Founder &amp; President, MUN Society</h3>
           <p>
             Built RV University's Model United Nations Society from nothing: recruited the core
             team, ran the conferences, and moderated committees as Presiding Officer at
@@ -893,7 +907,7 @@
         <div class="beyond-card reveal-up">
           <h3>Google Developer Groups on Campus</h3>
           <p>
-            PR and outreach for GDG at RVU — event visibility, community engagement and getting
+            PR and outreach for GDG at RVU: event visibility, community engagement and getting
             developers into rooms they'd otherwise skip.
           </p>
         </div>
@@ -919,9 +933,8 @@
        CONTACT
        ═══════════════════════════════════════════════════ -->
   <section class="section contact" id="contact"
-           data-field="funnel" data-a="#a855f7" data-b="#22d3ee"
-           data-morph="0.95" data-density="0.62" data-link="170" data-speed="0.8" data-pulse="0.1" data-op="0.9"
-           data-num="08" data-label="contact">
+           data-field="funnel" data-a="#E8A33D" data-b="#F9D694"
+           data-morph="0.95" data-density="0.62" data-link="170" data-speed="0.8" data-pulse="0.1" data-op="0.9" data-label="contact">
     <div class="swiss">
       <div class="contact-inner reveal-up">
         <p class="mono contact-kicker">available now</p>
@@ -971,7 +984,7 @@
     <footer class="footer">
       <div class="swiss footer-in">
         <p class="mono">Designed and built by Shubhang Srinivas Varda</p>
-        <p class="mono muted">© 2026 · Bengaluru, India · Built with caffeine and a questionable sleep schedule</p>
+        <p class="mono muted">© 2026 · Bengaluru, India</p>
       </div>
     </footer>
   </section>
@@ -982,66 +995,66 @@
   <nav class="os-dock" id="osDock" aria-label="Portfolio dock">
     <div class="dock-tray">
       <a class="dock-item" href="#explore" data-label="Console" aria-label="Console" data-sec="explore">
-        <span class="dock-tile" style="--c1:#1e1b3a;--c2:#0d0b1c">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 8 9 12 5 16"/><line x1="12" y1="16" x2="19" y2="16"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 8 9 12 5 16"/><line x1="12" y1="16" x2="19" y2="16"/></svg>
         </span><span class="dock-dot"></span>
       </a>
       <a class="dock-item" href="#about" data-label="Profile" aria-label="Profile" data-sec="about">
-        <span class="dock-tile" style="--c1:#8b5cf6;--c2:#6d28d9">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
         </span><span class="dock-dot"></span>
       </a>
       <a class="dock-item" href="#casestudy" data-label="Case Study" aria-label="Case Study" data-sec="casestudy">
-        <span class="dock-tile" style="--c1:#6366f1;--c2:#3730a3">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="6" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><circle cx="18.5" cy="12" r="2.2"/><path d="M7.7 6.9 16.4 11M7.7 17.1 16.4 13"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="6" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><circle cx="18.5" cy="12" r="2.2"/><path d="M7.7 6.9 16.4 11M7.7 17.1 16.4 13"/></svg>
         </span><span class="dock-dot"></span>
       </a>
       <a class="dock-item" href="#skills" data-label="Stack" aria-label="Stack" data-sec="skills">
-        <span class="dock-tile" style="--c1:#10b981;--c2:#047857">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4"/></svg>
         </span><span class="dock-dot"></span>
       </a>
       <a class="dock-item" href="#experience" data-label="Experience" aria-label="Experience" data-sec="experience">
-        <span class="dock-tile" style="--c1:#f59e0b;--c2:#b45309">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="13" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M2.5 12h19"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="13" rx="2"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M2.5 12h19"/></svg>
         </span><span class="dock-dot"></span>
       </a>
       <a class="dock-item" href="#projects" data-label="Builds" aria-label="Builds" data-sec="projects">
-        <span class="dock-tile" style="--c1:#22d3ee;--c2:#0e7490">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5 21 7v10l-9 4.5L3 17V7z"/><path d="M3 7l9 4.5L21 7M12 11.5V21"/></svg>
         </span><span class="dock-dot"></span>
       </a>
       <a class="dock-item" href="#research" data-label="Research" aria-label="Research" data-sec="research">
-        <span class="dock-tile" style="--c1:#fbbf24;--c2:#b45309">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4v15H6z"/><path d="M14 2.5v4h4"/><path d="M9 12h6M9 16h6"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4v15H6z"/><path d="M14 2.5v4h4"/><path d="M9 12h6M9 16h6"/></svg>
         </span><span class="dock-dot"></span>
       </a>
       <a class="dock-item" href="#beyond" data-label="Off-Stack" aria-label="Off-Stack" data-sec="beyond">
-        <span class="dock-tile" style="--c1:#fb7185;--c2:#be123c">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18"/></svg>
         </span><span class="dock-dot"></span>
       </a>
 
       <span class="dock-sep"></span>
 
       <button class="dock-item" id="dockIdentity" data-label="Identity" aria-label="Identity" type="button">
-        <span class="dock-tile" style="--c1:#334155;--c2:#0f172a">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2"/><circle cx="8.5" cy="11" r="2.2"/><path d="M4.8 16.5a4 4 0 0 1 7.4 0M14 10h4M14 13.5h4"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2"/><circle cx="8.5" cy="11" r="2.2"/><path d="M4.8 16.5a4 4 0 0 1 7.4 0M14 10h4M14 13.5h4"/></svg>
         </span>
       </button>
       <a class="dock-item" href="https://github.com/BaconKage" target="_blank" rel="noopener" data-label="GitHub" aria-label="GitHub">
-        <span class="dock-tile" style="--c1:#3b3b46;--c2:#16161c">
-          <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3Z"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.1 0 4.7-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3Z"/></svg>
         </span>
       </a>
       <a class="dock-item" href="https://wa.me/qr/77CMMCHW5JAKI1" target="_blank" rel="noopener" data-label="WhatsApp" aria-label="WhatsApp">
-        <span class="dock-tile" style="--c1:#4ae168;--c2:#128c3f">
-          <svg viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0 0 20.465 3.488"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0 0 20.465 3.488"/></svg>
         </span>
       </a>
       <a class="dock-item" href="mailto:vardashubhang@gmail.com" data-label="Email" aria-label="Email">
-        <span class="dock-tile" style="--c1:#a855f7;--c2:#22d3ee">
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
+        <span class="dock-tile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg>
         </span>
       </a>
     </div>
@@ -1071,13 +1084,14 @@
     </div>
   </div>
 
-  <script src="js/field.js?v=95"></script>
-  <script src="js/sky.js?v=95"></script>
-  <script src="js/textlens.js?v=95"></script>
-  <script src="js/main.js?v=95"></script>
-  <script src="js/bolt.js?v=95"></script>
-  <script src="js/orbit.js?v=95"></script>
-  <script src="js/power.js?v=95"></script>
-  <script src="js/scrolly.js?v=95"></script>
+  <script src="js/field.js?v=119"></script>
+  <script src="js/sky.js?v=119"></script>
+  <script src="js/textlens.js?v=119"></script>
+  <script src="js/main.js?v=119"></script>
+  <script src="js/bolt.js?v=119"></script>
+  <script src="js/schema.js?v=119"></script>
+  <script src="js/orbit.js?v=119"></script>
+  <script src="js/power.js?v=119"></script>
+  <script src="js/scrolly.js?v=119"></script>
 </body>
 </html>

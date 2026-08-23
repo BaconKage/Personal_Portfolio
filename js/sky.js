@@ -75,7 +75,8 @@
 
     function build() {
       const area = w * h;
-      const count = clamp(Math.round(area / 3400), 200, 620);
+      const d = (window.__gfx && window.__gfx.density) || 1;
+      const count = clamp(Math.round((area / 3400) * d), Math.round(200 * d), Math.round(620 * d));
       stars = Array.from({ length: count }, () => {
         const t = STAR_TINTS[(Math.random() * STAR_TINTS.length) | 0];
         return {
@@ -120,7 +121,7 @@
     }
 
     function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, (window.__gfx && window.__gfx.dprCap) || 2);
       w = window.innerWidth || document.documentElement.clientWidth;
       h = window.innerHeight || document.documentElement.clientHeight;
       // A page that hasn't been laid out yet reports 0. Sizing the canvas to

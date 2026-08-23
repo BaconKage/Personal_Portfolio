@@ -144,23 +144,31 @@
       density: 1,        // node opacity/size multiplier
       link: 150,         // connection radius in px
       speed: 1,
-      colA: [168, 85, 247],
-      colB: [34, 211, 238],
+      colA: [232, 163, 61],
+      colB: [247, 208, 140],
       pulseRate: 0.02,
     };
     const T = { ...S, colA: S.colA.slice(), colB: S.colB.slice() };
 
-    const hexToRgb = (hex) => {
-      const s = hex.replace('#', '');
-      const v = s.length === 3 ? s.split('').map((c) => c + c).join('') : s;
+    /* Accepts an authored hex or a computed rgb() string: registered custom
+       properties resolve to the latter, and silently returning NaN channels
+       paints the whole field black. */
+    const hexToRgb = (col) => {
+      const c = String(col).trim();
+      const m = c.match(/rgba?\(([^)]+)\)/i);
+      if (m) return m[1].split(',').slice(0, 3).map((v) => (parseFloat(v) | 0));
+      const s = c.replace('#', '');
+      const v = s.length === 3 ? s.split('').map((ch) => ch + ch).join('') : s;
       const n = parseInt(v, 16);
+      if (Number.isNaN(n)) return [232, 163, 61];
       return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
     };
 
     /* ── build node set sized to the viewport ── */
     function build() {
       const area = w * h;
-      const count = clamp(Math.round(area / 11000), 70, 230);
+      const d = (window.__gfx && window.__gfx.density) || 1;
+      const count = clamp(Math.round((area / 11000) * d), Math.round(70 * d), Math.round(230 * d));
       nodes = Array.from({ length: count }, (_, i) => ({
         i,
         x: hash(i) * w,
@@ -192,7 +200,7 @@
     }
 
     function resize() {
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      dpr = Math.min(window.devicePixelRatio || 1, (window.__gfx && window.__gfx.dprCap) || 2);
       w = window.innerWidth || document.documentElement.clientWidth;
       h = window.innerHeight || document.documentElement.clientHeight;
       // pre-layout reads 0; sizing to that would leave the canvas blank

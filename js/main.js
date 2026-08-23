@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════
    SHUBHANG VARDA — PORTFOLIO · main.js
-   preloader · cursor · reveals · counters · typewriter
+   preloader · cursor · reveals · counters
    stack matrix · magnetic · terminal · command palette
    ───────────────────────────────────────────────────────
    The generative background lives in field.js; everything
@@ -79,6 +79,13 @@
       de.classList.add('booted');
       document.body.style.overflow = '';
       try { sessionStorage.setItem('booted', '1'); } catch (e) {}
+      /* Focus is sitting on PRESS START or SKIP, both of which are deep in the
+         boot element. Leaving it there strands a keyboard visitor mid-document:
+         the next Tab continues from the gate rather than from the top, so the
+         skip link and the whole nav are behind them before they press a key.
+         Hand focus to <main> so tabbing resumes from the start of the content. */
+      const main = document.getElementById('main');
+      if (main && el.contains(document.activeElement)) main.focus({ preventScroll: true });
       // stowed, not removed — the power menu can bring the machine back up
       setTimeout(() => { if (finished) el.classList.add('stowed'); }, 1000);
     };
@@ -142,7 +149,7 @@
        and every section really does re-theme the page on enter. Anyone who
        stops to read it learns something true. */
     const SRC = [
-      "// portfolio.boot.ts — what you're about to look at",
+      "// portfolio.boot.ts: what you're about to look at",
       "import { NeuralField } from './field';",
       "import { sections } from './content';",
       '',
@@ -354,7 +361,7 @@
 
       // the two site accents plus three that appear nowhere else, so the
       // tunnel reads as its own moment rather than more of the same palette
-      const HUES = ['#a855f7', '#22d3ee', '#f472b6', '#fbbf24', '#e9d5ff'];
+      const HUES = ['#E8A33D', '#F7D08C', '#D97F26', '#EFC162', '#F9DFAC'];
       const DEPTH = 1400, FOCAL = 620;
       // particle count follows viewport area, like field.js — a laptop should
       // not be asked to draw a desktop's tunnel
@@ -505,6 +512,12 @@
     skipBtn?.addEventListener('click', finish);
     window.addEventListener('keydown', function onKey(e) {
       if (finished) return;
+      /* Both buttons in here are real buttons, so the browser already turns
+         Enter and Space into a click on whichever one has focus. Swallowing
+         the key regardless meant Enter on SKIP started the boot instead of
+         skipping it, and the keyboard had no way past the gate. Only claim
+         the key when focus is not on a control that already handles it. */
+      if (e.target === skipBtn || e.target === startBtn) return;
       if (e.key === 'Enter' || e.key === ' ') {
         if (!el.classList.contains('running')) { e.preventDefault(); run(); }
       } else if (e.key === 'Escape') {
@@ -749,23 +762,6 @@
     cObs.observe(el);
   });
 
-  /* ─────────── TYPEWRITER ─────────── */
-  const tw = $('#typewriter');
-  if (tw) {
-    const roles = ['Full-Stack Developer', 'AI / ML Engineer', 'Computer Vision Tinkerer',
-      'Published Springer Author', 'Product-Minded Builder'];
-    if (!motionEnabled) { tw.textContent = roles[0]; }
-    else {
-      let ri = 0, ci = 0, del = false;
-      (function tick() {
-        const word = roles[ri];
-        if (!del) { tw.textContent = word.slice(0, ++ci); if (ci === word.length) { del = true; return setTimeout(tick, 1500); } }
-        else { tw.textContent = word.slice(0, --ci); if (ci === 0) { del = false; ri = (ri + 1) % roles.length; } }
-        setTimeout(tick, del ? 45 : 85);
-      })();
-    }
-  }
-
   /* ─────────── STACK MATRIX ─────────── */
   (function skills() {
     const grid = $('#stackMatrix');
@@ -834,7 +830,7 @@
       ],
     };
     // category → legend swatch, so a cell always declares which layer it belongs to
-    const CAT = { fullstack: '#a855f7', ai: '#22d3ee', data: '#10b981', craft: '#fbbf24' };
+    const CAT = { fullstack: '#F8D79B', ai: '#EFAE45', data: '#D97F26', craft: '#B5822F' };
     const mono = (n) => `<span class="mcell-mono">${n.slice(0, 2)}</span>`;
 
     // Interleave the categories so the matrix reads as a mixed weight grid
@@ -957,11 +953,11 @@
         '<span class="term-ok">2</span> live internships · <span class="term-ok">5+</span> shipped builds · <span class="term-ok">1</span> Springer-published paper · CGPA <span class="term-ok">8.01</span>',
       ],
       about: () => [
-        'I build software where <span class="term-accent">AI meets the real world</span> — not demos, but',
+        'I build software where <span class="term-accent">AI meets the real world</span>. Not demos, but',
         'products with users: gyms running on my code, doctors training with my',
         'simulations, and kids learning languages through my apps.',
         '',
-        'Currently juggling two internships — an AI gym platform at Catalyst To',
+        'Currently juggling two internships: an AI gym platform at Catalyst To',
         'BeActive (MyGym) and healthcare communication simulators at First Drop Theatre.',
         'I co-authored a peer-reviewed paper on the "Paradox of Imperfection" in AI,',
         'published in Springer Nature\'s <span class="term-accent">AI &amp; Society</span> journal.',
@@ -973,19 +969,19 @@
         '<span class="term-warn">Craft</span>        UI/UX · Figma · Git · System Architecture · Software Testing · Product Thinking',
       ],
       projects: () => [
-        '<span class="term-accent">01.</span> MyGym — modular gym OS (Next.js · NestJS · PostgreSQL · Expo) ' + link('https://mygym.co.in', '↗ live'),
-        '<span class="term-accent">02.</span> VaniCert — voice deepfake detector (AASIST · Silero-VAD · FastAPI/Modal) ' + link('https://vanicert.vercel.app', '↗ live'),
-        '<span class="term-accent">03.</span> FirstDropAI — healthcare roleplay sim (Next.js · Gemini API) ' + link('https://firstdroptheatre.com', '↗ site'),
-        '<span class="term-accent">04.</span> BhashaBuddy — language learning for NRI kids (React · Supabase · OpenAI) ' + link('https://parampara-one.vercel.app/', '↗ live'),
-        '<span class="term-accent">05.</span> AI Gym UX overhaul — diet planner + posture engine (OpenCV · MediaPipe · Flask)',
+        '<span class="term-accent">01.</span> MyGym: modular gym OS (Next.js · NestJS · PostgreSQL · Expo) ' + link('https://mygym.co.in', '↗ live'),
+        '<span class="term-accent">02.</span> VaniCert: voice deepfake detector (AASIST · Silero-VAD · FastAPI/Modal) ' + link('https://vanicert.vercel.app', '↗ live'),
+        '<span class="term-accent">03.</span> FirstDropAI: healthcare roleplay sim (Next.js · Gemini API) ' + link('https://firstdroptheatre.com', '↗ site'),
+        '<span class="term-accent">04.</span> BhashaBuddy: language learning for NRI kids (React · Supabase · OpenAI) ' + link('https://parampara-one.vercel.app/', '↗ live'),
+        '<span class="term-accent">05.</span> AI Gym UX overhaul: diet planner + posture engine (OpenCV · MediaPipe · Flask)',
         '',
         '<span class="term-out">tip: type</span> <span class="term-cmd">goto projects</span> <span class="term-out">for the full showcase.</span>',
       ],
       experience: () => [
-        '<span class="term-ok">●</span> Technology Consultant @ First Drop Theatre   <span class="term-out">Jun 2026 — present</span>',
+        '<span class="term-ok">●</span> Technology Consultant @ First Drop Theatre   <span class="term-out">Jun 2026 - present</span>',
         '    AI healthcare-communication simulator · Next.js · Gemini · STT/TTS',
         '    ' + link('https://firstdroptheatre.com', 'firstdroptheatre.com'),
-        '<span class="term-ok">●</span> Full Stack Developer @ Catalyst To BeActive   <span class="term-out">Mar 2025 — present</span>',
+        '<span class="term-ok">●</span> Full Stack Developer @ Catalyst To BeActive   <span class="term-out">Mar 2025 - present</span>',
         '    AI gym platform · React/Flutter/Flask · MediaPipe + OpenCV workout validation',
         '    ' + link('https://mygym.co.in', 'mygym.co.in'),
       ],
@@ -993,12 +989,12 @@
         '<span class="term-warn">📄 Peer-reviewed · Springer Nature · AI &amp; Society · Dec 2025</span>',
         '"Imperfection as a Constitutive Property of Artificial Intelligence"',
         'Introduces the Paradox of Imperfection: as AI grows more complex, errors',
-        'don\'t vanish — they become deeper structural uncertainties. Bridges AI ethics,',
+        'don\'t vanish. They become deeper structural uncertainties. Bridges AI ethics,',
         'complexity theory, and real-world stakes in healthcare, law &amp; autonomy.',
         '→ Read it: ' + link('https://link.springer.com/article/10.1007/s00146-025-02837-2', 'link.springer.com/.../s00146-025-02837-2'),
       ],
       education: () => [
-        'B.Tech CSE (Data Science) · RV University · 2023–2027 · CGPA 8.01/10',
+        'B.Tech CSE (Data Science) · RV University · 2023-2027 · CGPA 8.01/10',
         'Class XII · RV PU College · 80.83%',
         'Class X · St. Joseph\'s Boys\' High School · 91.10%',
       ],
@@ -1014,7 +1010,7 @@
       ],
       resume: () => [
         '<span class="term-warn">Fetching résumé…</span>',
-        'The freshest copy lives with me — drop a line and I\'ll send the latest PDF:',
+        'The freshest copy lives with me. Drop a line and I\'ll send the latest PDF:',
         link('mailto:vardashubhang@gmail.com', 'vardashubhang@gmail.com'),
       ],
       socials_: null,
@@ -1041,7 +1037,7 @@
     };
     commands.contacts = commands.contact;
     commands.social = commands.socials;
-    commands.exit = () => ['<span class="term-out">Nice try — you can\'t leave, we\'re just getting started. 😄</span>'];
+    commands.exit = () => ['<span class="term-out">Nice try, you can\'t leave, we\'re just getting started. 😄</span>'];
     commands['rm -rf /'] = () => ['<span class="term-err">Whoa there. Deleting my portfolio would be a hiring red flag. Denied. 🛑</span>'];
 
     const run = (raw) => {
@@ -1059,7 +1055,7 @@
       }
       const fn = commands[lc];
       if (fn) { const out = fn(); if (out) out.forEach(print); }
-      else print('<span class="term-err">command not found: ' + esc(cmd) + '</span> — type <span class="term-cmd">help</span>');
+      else print('<span class="term-err">command not found: ' + esc(cmd) + '</span>. Type <span class="term-cmd">help</span>');
     };
 
     let history = [], histIdx = -1;
@@ -1092,7 +1088,7 @@
       if (booted) return; booted = true;
       const lines = [
         '<span class="term-out">Last login: just now on ttys001</span>',
-        'Welcome to <span class="term-accent">shubhang@portfolio</span> — an interactive résumé.',
+        'Welcome to <span class="term-accent">shubhang@portfolio</span>, an interactive résumé.',
         'Type <span class="term-cmd">help</span> to see what I can do, or try <span class="term-cmd">whoami</span>.',
         '',
       ];
@@ -1112,20 +1108,20 @@
     const go = (id) => () => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     const open = (url) => () => window.open(url, '_blank', 'noopener');
     const items = [
-      { ico: '🏠', label: 'Home', sub: 'top', run: go('hero') },
-      { ico: '💻', label: 'Interactive Terminal', sub: 'explore', run: () => { go('explore')(); setTimeout(() => $('#termInput')?.focus(), 500); } },
-      { ico: '👤', label: 'About', sub: 'who I am', run: go('about') },
-      { ico: '🧬', label: 'Case Study', sub: 'MyGym architecture', run: go('casestudy') },
-      { ico: '🧠', label: 'Stack', sub: 'weight matrix', run: go('skills') },
-      { ico: '🚀', label: 'Experience', sub: 'where I shipped', run: go('experience') },
-      { ico: '🛠️', label: 'Projects', sub: 'featured builds', run: go('projects') },
-      { ico: '📄', label: 'Research', sub: 'Springer paper', run: go('research') },
-      { ico: '🌍', label: 'Beyond Code', sub: 'leadership', run: go('beyond') },
-      { ico: '✉️', label: 'Email me', sub: 'vardashubhang@gmail.com', run: open('mailto:vardashubhang@gmail.com') },
-      { ico: '📋', label: 'Copy email', sub: 'to clipboard', run: () => { navigator.clipboard?.writeText('vardashubhang@gmail.com'); flash('email copied ✓'); } },
-      { ico: '🐙', label: 'GitHub', sub: 'BaconKage', run: open('https://github.com/BaconKage') },
-      { ico: '💼', label: 'LinkedIn', sub: 'connect', run: open('https://www.linkedin.com/in/shubhang-srinivas-varda-322ba4297/') },
-      { ico: '📞', label: 'Call', sub: '+91 83107 54365', run: open('tel:+918310754365') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>', label: 'Home', sub: 'top', run: go('hero') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M8 9l3 3l-3 3" /><path d="M13 15l3 0" /><path d="M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -12" /></svg>', label: 'Interactive Terminal', sub: 'explore', run: () => { go('explore')(); setTimeout(() => $('#termInput')?.focus(), 500); } },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" /><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" /></svg>', label: 'About', sub: 'who I am', run: go('about') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M6 20a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" /><path d="M16 4a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" /><path d="M16 20a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" /><path d="M11 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" /><path d="M21 12a2 2 0 1 0 -4 0a2 2 0 0 0 4 0" /><path d="M5.058 18.306l2.88 -4.606" /><path d="M10.061 10.303l2.877 -4.604" /><path d="M10.065 13.705l2.876 4.6" /><path d="M15.063 5.7l2.881 4.61" /></svg>', label: 'Case Study', sub: 'MyGym architecture', run: go('casestudy') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" /><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" /><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" /><path d="M14 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" /></svg>', label: 'Stack', sub: 'weight matrix', run: go('skills') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M3 9a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -9" /><path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" /><path d="M12 12l0 .01" /><path d="M3 13a20 20 0 0 0 18 0" /></svg>', label: 'Experience', sub: 'where I shipped', run: go('experience') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></svg>', label: 'Projects', sub: 'featured builds', run: go('projects') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" /><path d="M9 9l1 0" /><path d="M9 13l6 0" /><path d="M9 17l6 0" /></svg>', label: 'Research', sub: 'Springer paper', run: go('research') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M3.6 9h16.8" /><path d="M3.6 15h16.8" /><path d="M11.5 3a17 17 0 0 0 0 18" /><path d="M12.5 3a17 17 0 0 1 0 18" /></svg>', label: 'Beyond Code', sub: 'leadership', run: go('beyond') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" /><path d="M3 7l9 6l9 -6" /></svg>', label: 'Email me', sub: 'vardashubhang@gmail.com', run: open('mailto:vardashubhang@gmail.com') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" /><path d="M9 5a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2" /></svg>', label: 'Copy email', sub: 'to clipboard', run: () => { navigator.clipboard?.writeText('vardashubhang@gmail.com'); flash('email copied'); } },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" /></svg>', label: 'GitHub', sub: 'BaconKage', run: open('https://github.com/BaconKage') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M8 11v5" /><path d="M8 8v.01" /><path d="M12 16v-5" /><path d="M16 16v-3a2 2 0 1 0 -4 0" /><path d="M3 7a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v10a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4l0 -10" /></svg>', label: 'LinkedIn', sub: 'connect', run: open('https://www.linkedin.com/in/shubhang-srinivas-varda-322ba4297/') },
+      { ico: '<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" /></svg>', label: 'Call', sub: '+91 83107 54365', run: open('tel:+918310754365') },
     ];
     let filtered = items.slice(), sel = 0;
 
@@ -1172,7 +1168,7 @@
     function flash(msg) {
       const t = document.createElement('div');
       t.textContent = msg;
-      t.style.cssText = 'position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(100deg,#a855f7,#22d3ee);color:#0a0118;font-family:monospace;font-weight:600;padding:10px 20px;border-radius:100px;box-shadow:0 8px 40px rgba(168,85,247,.6)';
+      t.style.cssText = 'position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(100deg,#E8A33D,#F7D08C);color:#0A0D16;font-family:monospace;font-weight:600;padding:10px 20px;border-radius:100px;box-shadow:0 8px 40px rgba(232,163,61,.5)';
       document.body.appendChild(t);
       setTimeout(() => { t.style.transition = 'opacity .5s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 1600);
     }
@@ -1188,7 +1184,7 @@
       btn.classList.toggle('on', motionEnabled);
       btn.setAttribute('aria-pressed', String(motionEnabled));
       if (stateEl) stateEl.textContent = motionEnabled ? 'On' : 'Off';
-      btn.title = motionEnabled ? 'Animations are on — click to calm things down' : 'Animations are off — click for the full experience';
+      btn.title = motionEnabled ? 'Animations are on. Click to calm things down' : 'Animations are off. Click for the full experience';
     };
     sync();
     btn.addEventListener('click', () => {
@@ -1208,13 +1204,13 @@
       document.body.style.transition = 'filter 0.6s';
       document.body.style.filter = 'hue-rotate(180deg)';
       const note = document.createElement('div');
-      note.textContent = '⚡ dev mode unlocked — nice.';
-      note.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(100deg,#a855f7,#22d3ee);color:#0a0118;font-family:monospace;font-weight:600;padding:12px 22px;border-radius:100px;box-shadow:0 8px 40px rgba(168,85,247,.6)';
+      note.textContent = '⚡ dev mode unlocked. Nice.';
+      note.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(100deg,#E8A33D,#F7D08C);color:#0A0D16;font-family:monospace;font-weight:600;padding:12px 22px;border-radius:100px;box-shadow:0 8px 40px rgba(232,163,61,.5)';
       document.body.appendChild(note);
       setTimeout(() => { document.body.style.filter = ''; note.style.transition = 'opacity .5s'; note.style.opacity = '0'; setTimeout(() => note.remove(), 500); }, 2600);
     }
   });
 
-  console.log('%c⚡ Built by Shubhang Srinivas Varda', 'color:#a855f7;font-size:14px;font-weight:bold');
-  console.log('%cPro tip: press ⌘K / Ctrl+K, or scroll to the terminal and type "sudo hire-me"', 'color:#22d3ee');
+  console.log('%c⚡ Built by Shubhang Srinivas Varda', 'color:#E8A33D;font-size:14px;font-weight:bold');
+  console.log('%cPro tip: press ⌘K / Ctrl+K, or scroll to the terminal and type "sudo hire-me"', 'color:#F7D08C');
 })();

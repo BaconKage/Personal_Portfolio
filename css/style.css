@@ -1,33 +1,52 @@
 /* ═══════════════════════════════════════════════════════
    SHUBHANG VARDA — PORTFOLIO
-   Deep-space dark theme · violet→cyan accent
+   Deep-space dark theme · sodium-amber accent on a cool ground
    ═══════════════════════════════════════════════════════ */
 
 :root {
-  --bg: #060010;
-  --bg-soft: #0b0618;
+  color-scheme: dark;
+  /* The ground is cool and neutral so the accent is the only warm thing on
+     screen. That temperature split is what makes it read as an instrument
+     rather than a colour scheme. */
+  --bg: #05070E;
+  --bg-soft: #0A0D16;
   --surface: rgba(255, 255, 255, 0.035);
   --surface-hover: rgba(255, 255, 255, 0.07);
   --border: rgba(255, 255, 255, 0.09);
   --border-bright: color-mix(in oklab, var(--accent-a) 50%, transparent);
-  --text: #f2f0f8;
+  --text: #EDF0F6;
   /* body copy and labels sit over a live canvas, so both were lifted a
      step: --text-dim now clears 9:1 on --bg and --text-faint clears 5:1,
      which is what makes the small mono metadata actually readable. */
-  --text-dim: #c2bcd2;
-  --text-faint: #948da8;
+  --text-dim: #B7BFCE;
+  --text-faint: #878FA1;
   /* --violet / --cyan are aliases onto the live section accents, so the
      entire component library recolours as you scroll. editorial.css
      registers the accents with @property to make them interpolate. */
   --violet: var(--accent-a);
   --cyan: var(--accent-b);
-  --pink: #ec4899;
-  --gold: #fbbf24;
+  /* Semantic signals. These are state, not decoration, so they sit outside
+     the accent system and never morph: an error must not turn gold because
+     you scrolled into the research section. */
+  --signal-err: #F87171;
+  --signal-ok: #4ADE80;
+  --pink: var(--signal-err);
+  --gold: var(--accent-a);
   --grad: linear-gradient(100deg, var(--violet), var(--cyan));
-  --grad-soft: linear-gradient(100deg, rgba(168, 85, 247, 0.18), rgba(34, 211, 238, 0.18));
+  --grad-soft: linear-gradient(100deg, color-mix(in oklab, var(--accent-a) 18%, transparent), color-mix(in oklab, var(--accent-b) 18%, transparent));
   --font-display: 'Syne', sans-serif;
   --font-body: 'Space Grotesk', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+  /* one radius scale for the whole page. --r-round and --r-squircle are
+     shape primitives (circles, dock tiles), the rest is the step ladder. */
+  --r-hair: 3px;
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 22px;
+  --r-pill: 100px;
+  --r-round: 50%;
+  --r-squircle: 26%;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -44,15 +63,62 @@ body {
   line-height: 1.7;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: color-mix(in oklab, var(--accent-a) 22%, transparent);
 }
 
-::selection { background: rgba(168, 85, 247, 0.45); color: #fff; }
+/* Skip link. The page opens behind a boot gate, a fixed nav, a dock and a
+   margin rail, so a keyboard visitor otherwise tabs through all of it on
+   every load before reaching a word of content. */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 10000;
+  padding: 12px 18px;
+  border-radius: var(--r-sm);
+  background: var(--bg-soft);
+  border: 1px solid var(--accent-a);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-decoration: none;
+  transform: translateY(-140%);
+  transition: transform 0.22s var(--ease-out);
+}
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--accent-b);
+  outline-offset: 2px;
+}
+/* the boot gate owns the screen until it finishes; nothing behind it should
+   be tabbable, including this */
+html:not(.booted) .skip-link { display: none; }
+#main:focus { outline: none; }
+
+/* digits that update in place (clock, counters, percentages) must not
+   reflow the text around them on every tick */
+.os-clock,
+.counter,
+.statline-v,
+.idw-batt-pct,
+.entry-date,
+.vitals dd {
+  font-variant-numeric: tabular-nums;
+}
+
+/* display type sets long: keep the last line from stranding a single word */
+h1, h2, h3, .hero-title, .sec-title, .contact-title, .pcard h3, .step h3 {
+  text-wrap: balance;
+}
+p, .sec-lede, .mh-desc { text-wrap: pretty; }
+
+::selection { background: color-mix(in oklab, var(--accent-a) 45%, transparent); color: #fff; }
 
 ::-webkit-scrollbar { width: 10px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(var(--violet), var(--cyan));
-  border-radius: 5px;
+  border-radius: var(--r-xs);
 }
 
 .mono { font-family: var(--font-mono); }
@@ -126,7 +192,7 @@ a { color: inherit; text-decoration: none; }
   width: min(280px, 60vw);
   height: 3px;
   background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
+  border-radius: var(--r-hair);
   margin: 28px auto 16px;
   overflow: hidden;
 }
@@ -134,7 +200,7 @@ a { color: inherit; text-decoration: none; }
   height: 100%;
   width: 0;
   background: var(--grad);
-  border-radius: 3px;
+  border-radius: var(--r-hair);
   animation: barFill 1.6s var(--ease-out) 0.3s forwards;
 }
 @keyframes barFill { to { width: 100%; } }
@@ -162,7 +228,7 @@ a { color: inherit; text-decoration: none; }
   top: 0; left: 0;
   pointer-events: none;
   z-index: 9999;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   transform: translate(-50%, -50%);
 }
 .cursor-dot {
@@ -173,14 +239,14 @@ a { color: inherit; text-decoration: none; }
 }
 .cursor-ring {
   width: 38px; height: 38px;
-  border: 1.5px solid rgba(168, 85, 247, 0.6);
+  border: 1.5px solid color-mix(in oklab, var(--accent-a) 60%, transparent);
   transition: width 0.25s var(--ease-out), height 0.25s var(--ease-out),
               border-color 0.25s, background 0.25s;
 }
 .cursor-ring.hovering {
   width: 64px; height: 64px;
   border-color: var(--cyan);
-  background: rgba(34, 211, 238, 0.08);
+  background: color-mix(in oklab, var(--accent-b) 8%, transparent);
 }
 @media (hover: none), (pointer: coarse) {
   .cursor-dot, .cursor-ring { display: none; }
@@ -198,7 +264,7 @@ a { color: inherit; text-decoration: none; }
   height: 100%;
   width: 0%;
   background: var(--grad);
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.7);
+  box-shadow: 0 0 14px color-mix(in oklab, var(--accent-a) 70%, transparent);
 }
 
 /* ═══════════ AMBIENT BACKGROUND ═══════════ */
@@ -210,7 +276,7 @@ a { color: inherit; text-decoration: none; }
 }
 .orb {
   position: absolute;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   filter: blur(110px);
   opacity: 0.62;
 }
@@ -222,7 +288,7 @@ a { color: inherit; text-decoration: none; }
 }
 .orb-2 {
   width: 45vw; height: 45vw;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.22), transparent 65%);
+  background: radial-gradient(circle, color-mix(in oklab, var(--accent-b) 22%, transparent), transparent 65%);
   bottom: -15vw; right: -10vw;
   animation: orbFloat2 26s ease-in-out infinite alternate;
 }
@@ -316,7 +382,7 @@ a { color: inherit; text-decoration: none; }
   font-size: 0.9rem;
   font-weight: 600;
   padding: 9px 20px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   background: var(--grad);
   color: #0a0118;
   display: inline-flex;
@@ -325,7 +391,7 @@ a { color: inherit; text-decoration: none; }
   transition: box-shadow 0.3s, transform 0.3s;
 }
 .nav-cta:hover {
-  box-shadow: 0 0 28px rgba(168, 85, 247, 0.55);
+  box-shadow: 0 0 28px color-mix(in oklab, var(--accent-a) 55%, transparent);
 }
 .cta-arrow { transition: transform 0.3s var(--ease-spring); display: inline-block; }
 .nav-cta:hover .cta-arrow { transform: translateX(4px); }
@@ -333,17 +399,21 @@ a { color: inherit; text-decoration: none; }
 .nav-burger {
   display: none;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 5px;
   background: none;
   border: none;
   cursor: pointer;
   padding: 8px;
+  min-width: 44px;
+  min-height: 44px;
   z-index: 1002;
 }
 .nav-burger span {
   width: 24px; height: 2px;
   background: var(--text);
-  border-radius: 2px;
+  border-radius: var(--r-hair);
   transition: transform 0.3s, opacity 0.3s;
 }
 .nav-burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
@@ -387,13 +457,13 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface);
   backdrop-filter: blur(8px);
   padding: 8px 18px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   margin-bottom: 34px;
 }
 .status-dot {
   width: 8px; height: 8px;
-  border-radius: 50%;
-  background: #34d399;
+  border-radius: var(--r-round);
+  background: var(--signal-ok);
   box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
   animation: pulse 2s infinite;
 }
@@ -441,34 +511,16 @@ a { color: inherit; text-decoration: none; }
 .hero-word:not(.hero-word-outline) .hero-char:hover {
   color: var(--cyan);
   transform: translateY(-0.09em) scale(1.08);
-  text-shadow: 0 0 32px rgba(34, 211, 238, 0.7);
+  text-shadow: 0 0 32px color-mix(in oklab, var(--accent-b) 70%, transparent);
 }
 .hero-word.gradient-text .hero-char:hover {
   -webkit-text-fill-color: var(--cyan);
-  text-shadow: 0 0 32px rgba(34, 211, 238, 0.7);
+  text-shadow: 0 0 32px color-mix(in oklab, var(--accent-b) 70%, transparent);
 }
 .hero-word-outline .hero-char:hover {
   -webkit-text-stroke-color: var(--cyan);
   transform: translateY(-0.09em) scale(1.08);
 }
-
-.hero-sub {
-  font-size: clamp(1rem, 2.4vw, 1.35rem);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin-bottom: 26px;
-  min-height: 2em;
-}
-.hero-prompt { color: var(--cyan); font-weight: 600; }
-.typewriter { font-family: var(--font-mono); color: var(--text); font-weight: 500; }
-.type-caret {
-  color: var(--violet);
-  animation: blink 0.9s steps(1) infinite;
-  font-family: var(--font-mono);
-}
-@keyframes blink { 50% { opacity: 0; } }
 
 .hero-desc {
   max-width: 620px;
@@ -491,7 +543,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 10px;
   padding: 15px 32px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   font-weight: 600;
   font-size: 0.98rem;
   font-family: var(--font-body);
@@ -513,7 +565,7 @@ a { color: inherit; text-decoration: none; }
   transition: transform 0.6s;
 }
 .btn-primary:hover::before { transform: translateX(120%); }
-.btn-primary:hover { box-shadow: 0 8px 40px rgba(168, 85, 247, 0.5); }
+.btn-primary:hover { box-shadow: 0 8px 40px color-mix(in oklab, var(--accent-a) 50%, transparent); }
 .btn-ghost {
   border: 1px solid var(--border);
   background: var(--surface);
@@ -522,7 +574,7 @@ a { color: inherit; text-decoration: none; }
 }
 .btn-ghost:hover {
   border-color: var(--border-bright);
-  box-shadow: 0 0 24px rgba(168, 85, 247, 0.25);
+  box-shadow: 0 0 24px color-mix(in oklab, var(--accent-a) 25%, transparent);
 }
 .btn-lg { padding: 19px 40px; font-size: 1.08rem; }
 
@@ -542,7 +594,7 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface);
   backdrop-filter: blur(8px);
   padding: 9px 18px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   transition: color 0.3s, border-color 0.3s, transform 0.3s var(--ease-spring);
 }
 .social-pill:hover {
@@ -571,7 +623,7 @@ a { color: inherit; text-decoration: none; }
 .scroll-mouse {
   width: 24px; height: 38px;
   border: 1.5px solid var(--text-faint);
-  border-radius: 14px;
+  border-radius: var(--r-md);
   display: flex;
   justify-content: center;
   padding-top: 7px;
@@ -579,7 +631,7 @@ a { color: inherit; text-decoration: none; }
 .scroll-wheel {
   width: 3px; height: 8px;
   background: var(--cyan);
-  border-radius: 3px;
+  border-radius: var(--r-hair);
   animation: wheel 1.6s ease-in-out infinite;
 }
 @keyframes wheel {
@@ -687,7 +739,7 @@ a { color: inherit; text-decoration: none; }
 .tag {
   font-size: 0.78rem;
   padding: 7px 15px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
@@ -708,7 +760,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   backdrop-filter: blur(10px);
-  border-radius: 18px;
+  border-radius: var(--r-md);
   padding: 28px 20px;
   text-align: center;
   transition: border-color 0.3s, background 0.3s;
@@ -746,7 +798,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  border-radius: var(--r-lg);
   padding: 30px;
   transition: border-color 0.3s, background 0.3s;
   will-change: transform;
@@ -758,7 +810,7 @@ a { color: inherit; text-decoration: none; }
   position: absolute;
   inset: 0;
   background: radial-gradient(500px circle at var(--mx, 50%) var(--my, 50%),
-              rgba(168, 85, 247, 0.12), transparent 45%);
+              color-mix(in oklab, var(--accent-a) 12%, transparent), transparent 45%);
   opacity: 0;
   transition: opacity 0.4s;
   pointer-events: none;
@@ -792,7 +844,7 @@ a { color: inherit; text-decoration: none; }
   align-items: center;
   gap: 10px;
   padding: 12px 6px;
-  border-radius: 14px;
+  border-radius: var(--r-md);
   cursor: default;
   transition: transform 0.4s var(--ease-spring), background 0.3s;
 }
@@ -812,8 +864,8 @@ a { color: inherit; text-decoration: none; }
 .skill-logo svg { color: var(--text-dim); transition: color 0.3s, filter 0.3s; }
 .skill-logo img { transition: filter 0.3s; }
 .skill-tile:hover .skill-logo { animation-play-state: paused; }
-.skill-tile:hover .skill-logo img { filter: drop-shadow(0 8px 18px rgba(168, 85, 247, 0.55)); }
-.skill-tile:hover .skill-logo svg { color: var(--cyan); filter: drop-shadow(0 0 12px rgba(34, 211, 238, 0.6)); }
+.skill-tile:hover .skill-logo img { filter: drop-shadow(0 8px 18px color-mix(in oklab, var(--accent-a) 55%, transparent)); }
+.skill-tile:hover .skill-logo svg { color: var(--cyan); filter: drop-shadow(0 0 12px color-mix(in oklab, var(--accent-b) 60%, transparent)); }
 .skill-mono {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
@@ -839,17 +891,18 @@ a { color: inherit; text-decoration: none; }
   font-family: var(--font-mono);
   font-size: 0.76rem;
   padding: 6px 14px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.03);
   color: var(--text-dim);
-  transition: all 0.25s var(--ease-out);
+  transition: border-color 0.25s var(--ease-out), color 0.25s var(--ease-out),
+              box-shadow 0.25s var(--ease-out), transform 0.25s var(--ease-out);
   cursor: default;
 }
 .chip:hover {
   border-color: var(--cyan);
   color: var(--cyan);
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.25);
+  box-shadow: 0 0 16px color-mix(in oklab, var(--accent-b) 25%, transparent);
   transform: translateY(-2px) scale(1.04);
 }
 .chips-sm .chip { font-size: 0.68rem; padding: 4px 11px; }
@@ -880,7 +933,7 @@ a { color: inherit; text-decoration: none; }
   left: -40px;
   top: 30px;
   width: 20px; height: 20px;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   background: var(--bg);
   border: 2px solid var(--violet);
   display: flex;
@@ -889,7 +942,7 @@ a { color: inherit; text-decoration: none; }
 }
 .timeline-pulse {
   width: 8px; height: 8px;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   background: var(--grad);
   animation: pulse 2s infinite;
 }
@@ -898,7 +951,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  border-radius: var(--r-lg);
   padding: 32px;
   transition: border-color 0.3s;
   will-change: transform;
@@ -925,20 +978,20 @@ a { color: inherit; text-decoration: none; }
   font-weight: 600;
   letter-spacing: 0.14em;
   padding: 5px 12px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--border-bright);
-  background: rgba(168, 85, 247, 0.12);
+  background: color-mix(in oklab, var(--accent-a) 12%, transparent);
   color: var(--violet);
 }
 .badge-live {
   border-color: rgba(52, 211, 153, 0.5);
-  background: rgba(52, 211, 153, 0.1);
-  color: #34d399;
+  background: color-mix(in oklab, var(--signal-ok) 12%, transparent);
+  color: var(--signal-ok);
 }
 .badge-gold {
-  border-color: rgba(251, 191, 36, 0.5);
-  background: rgba(251, 191, 36, 0.1);
-  color: var(--gold);
+  border-color: color-mix(in oklab, var(--accent-a) 55%, transparent);
+  background: color-mix(in oklab, var(--accent-a) 14%, transparent);
+  color: var(--accent-b);
 }
 
 .timeline-card h3 {
@@ -972,7 +1025,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   backdrop-filter: blur(10px);
-  border-radius: 22px;
+  border-radius: var(--r-lg);
   padding: 34px;
   position: relative;
   overflow: hidden;
@@ -988,7 +1041,7 @@ a { color: inherit; text-decoration: none; }
   position: absolute;
   inset: 0;
   background: radial-gradient(620px circle at var(--mx, 50%) var(--my, 50%),
-              rgba(34, 211, 238, 0.1), transparent 45%);
+              color-mix(in oklab, var(--accent-b) 10%, transparent), transparent 45%);
   opacity: 0;
   transition: opacity 0.4s;
   pointer-events: none;
@@ -1003,7 +1056,7 @@ a { color: inherit; text-decoration: none; }
 }
 .project-emoji {
   font-size: 2.1rem;
-  filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.5));
+  filter: drop-shadow(0 0 14px color-mix(in oklab, var(--accent-a) 50%, transparent));
   transition: transform 0.4s var(--ease-spring);
 }
 .project-card:hover .project-emoji { transform: scale(1.2) rotate(-8deg); }
@@ -1034,7 +1087,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--cyan);
   font-weight: 500;
   letter-spacing: 0.04em;
-  border-bottom: 1px dashed rgba(34, 211, 238, 0.4);
+  border-bottom: 1px dashed color-mix(in oklab, var(--accent-b) 40%, transparent);
   padding-bottom: 2px;
   transition: color 0.3s, border-color 0.3s;
   display: inline-block;
@@ -1043,10 +1096,10 @@ a { color: inherit; text-decoration: none; }
 
 /* ═══════════ RESEARCH ═══════════ */
 .research-card {
-  border: 1px solid rgba(251, 191, 36, 0.25);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.05), rgba(168, 85, 247, 0.05));
+  border: 1px solid color-mix(in oklab, var(--accent-a) 25%, transparent);
+  background: linear-gradient(135deg, color-mix(in oklab, var(--accent-a) 5%, transparent), color-mix(in oklab, var(--accent-a) 5%, transparent));
   backdrop-filter: blur(10px);
-  border-radius: 24px;
+  border-radius: var(--r-lg);
   padding: clamp(30px, 5vw, 50px);
   position: relative;
   overflow: hidden;
@@ -1054,12 +1107,12 @@ a { color: inherit; text-decoration: none; }
   will-change: transform;
   transition: border-color 0.35s;
 }
-.research-card:hover { border-color: rgba(251, 191, 36, 0.55); }
+.research-card:hover { border-color: color-mix(in oklab, var(--accent-a) 55%, transparent); }
 .research-glow {
   position: absolute;
   inset: 0;
   background: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%),
-              rgba(251, 191, 36, 0.09), transparent 45%);
+              color-mix(in oklab, var(--accent-a) 9%, transparent), transparent 45%);
   opacity: 0;
   transition: opacity 0.4s;
   pointer-events: none;
@@ -1105,7 +1158,7 @@ a { color: inherit; text-decoration: none; }
   align-items: flex-start;
   border: 1px solid var(--border);
   background: var(--surface);
-  border-radius: 16px;
+  border-radius: var(--r-md);
   padding: 22px;
   transition: border-color 0.3s, background 0.3s;
   will-change: transform;
@@ -1114,7 +1167,12 @@ a { color: inherit; text-decoration: none; }
   border-color: var(--border-bright);
   background: var(--surface-hover);
 }
-.cert-icon { font-size: 1.7rem; line-height: 1.2; }
+.cert-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  color: var(--accent-a);
+}
 .cert-card h4 {
   font-family: var(--font-display);
   font-size: 0.98rem;
@@ -1133,7 +1191,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  border-radius: var(--r-lg);
   padding: 30px;
   transition: border-color 0.3s, background 0.3s;
   will-change: transform;
@@ -1302,7 +1360,7 @@ a { color: inherit; text-decoration: none; }
   border: 1px solid var(--border);
   background: var(--surface);
   padding: 5px 12px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   transition: border-color 0.3s, color 0.3s;
 }
 .kbd-hint:hover { border-color: var(--border-bright); color: var(--text); }
@@ -1311,7 +1369,7 @@ kbd {
   font-size: 0.7rem;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: var(--r-xs);
   padding: 1px 6px;
   color: var(--text);
 }
@@ -1346,9 +1404,10 @@ kbd {
 }
 .dot-nav .dot {
   width: 9px; height: 9px;
-  border-radius: 50%;
+  border-radius: var(--r-round);
   border: 1.5px solid var(--text-faint);
-  transition: all 0.3s var(--ease-spring);
+  transition: border-color 0.3s var(--ease-spring), background 0.3s var(--ease-spring),
+              box-shadow 0.3s var(--ease-spring), transform 0.3s var(--ease-spring);
   flex-shrink: 0;
 }
 .dot-nav a:hover .dot-label { opacity: 1; transform: translateX(0); color: var(--text); }
@@ -1356,7 +1415,7 @@ kbd {
 .dot-nav a.active .dot {
   background: var(--grad);
   border-color: transparent;
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.7);
+  box-shadow: 0 0 14px color-mix(in oklab, var(--accent-a) 70%, transparent);
   transform: scale(1.35);
 }
 .dot-nav a.active .dot-label { opacity: 1; transform: translateX(0); color: var(--text); }
@@ -1368,16 +1427,16 @@ kbd {
   max-width: 900px;
   margin: 0 auto;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--r-md);
   background: rgba(4, 2, 12, 0.82);
   backdrop-filter: blur(14px);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(168, 85, 247, 0.06);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 0 1px color-mix(in oklab, var(--accent-a) 6%, transparent);
   overflow: hidden;
   transition: border-color 0.4s, box-shadow 0.4s;
 }
 .terminal-window.focused {
   border-color: var(--border-bright);
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 40px rgba(168, 85, 247, 0.18);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55), 0 0 40px color-mix(in oklab, var(--accent-a) 18%, transparent);
 }
 .terminal-bar {
   display: flex;
@@ -1387,7 +1446,7 @@ kbd {
   border-bottom: 1px solid var(--border);
   background: rgba(255, 255, 255, 0.02);
 }
-.tl-dot { width: 12px; height: 12px; border-radius: 50%; }
+.tl-dot { width: 12px; height: 12px; border-radius: var(--r-round); }
 .tl-red { background: #ff5f57; }
 .tl-yellow { background: #febc2e; }
 .tl-green { background: #28c840; }
@@ -1418,10 +1477,10 @@ kbd {
 .term-cmd { color: var(--text); }
 .term-out { color: var(--text-dim); }
 .term-accent { color: var(--cyan); }
-.term-ok { color: #34d399; }
+.term-ok { color: var(--signal-ok); }
 .term-warn { color: var(--gold); }
 .term-err { color: var(--pink); }
-.term-link { color: var(--cyan); border-bottom: 1px dashed rgba(34,211,238,.4); }
+.term-link { color: var(--cyan); border-bottom: 1px dashed color-mix(in oklab, var(--accent-b) 40%, transparent); }
 .term-link:hover { color: var(--text); }
 .term-input-line { display: flex; align-items: baseline; gap: 8px; }
 .term-input {
@@ -1433,7 +1492,15 @@ kbd {
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.86rem;
+  min-height: 26px;
   caret-color: var(--cyan);
+  border-radius: var(--r-hair);
+}
+/* the inputs drop their native outline for the chrome to read right; the ring
+   has to come back on keyboard focus or they are unreachable-looking */
+.term-input:focus-visible {
+  outline: 2px solid var(--accent-b);
+  outline-offset: 3px;
 }
 .term-suggest {
   display: flex;
@@ -1445,19 +1512,23 @@ kbd {
 .term-chip {
   font-family: var(--font-mono);
   font-size: 0.74rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
   padding: 6px 14px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
   cursor: pointer;
-  transition: all 0.25s var(--ease-out);
+  transition: border-color 0.25s var(--ease-out), color 0.25s var(--ease-out),
+              box-shadow 0.25s var(--ease-out), transform 0.25s var(--ease-out);
 }
 .term-chip:hover {
   border-color: var(--cyan);
   color: var(--cyan);
   transform: translateY(-2px);
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.25);
+  box-shadow: 0 0 16px color-mix(in oklab, var(--accent-b) 25%, transparent);
 }
 .term-chip b { color: var(--violet); }
 
@@ -1481,8 +1552,8 @@ kbd {
   width: min(600px, 92vw);
   background: rgba(11, 6, 24, 0.96);
   border: 1px solid var(--border-bright);
-  border-radius: 16px;
-  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 50px rgba(168, 85, 247, 0.2);
+  border-radius: var(--r-md);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 50px color-mix(in oklab, var(--accent-a) 20%, transparent);
   overflow: hidden;
   transform: translateY(-14px) scale(0.98);
   transition: transform 0.25s var(--ease-spring);
@@ -1504,23 +1575,35 @@ kbd {
   color: var(--text);
   font-family: var(--font-body);
   font-size: 1.02rem;
+  min-height: 26px;
+  border-radius: var(--r-hair);
+}
+.cmdk-input:focus-visible {
+  outline: 2px solid var(--accent-b);
+  outline-offset: 3px;
 }
 .cmdk-input::placeholder { color: var(--text-faint); }
-.cmdk-list { max-height: 340px; overflow-y: auto; padding: 8px; }
+.cmdk-list { max-height: 340px; overflow-y: auto; overscroll-behavior: contain; padding: 8px; }
 .cmdk-item {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--r-sm);
   cursor: pointer;
   color: var(--text-dim);
   transition: background 0.15s, color 0.15s;
 }
-.cmdk-item .cmdk-ico { font-size: 1.1rem; width: 22px; text-align: center; }
+.cmdk-item .cmdk-ico {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  color: var(--accent-b);
+}
+.cmdk-item .cmdk-ico svg { width: 18px; height: 18px; }
 .cmdk-item .cmdk-sub { margin-left: auto; font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-faint); }
 .cmdk-item.sel, .cmdk-item:hover { background: var(--surface-hover); color: var(--text); }
-.cmdk-item.sel .cmdk-ico { filter: drop-shadow(0 0 10px rgba(34,211,238,.6)); }
+.cmdk-item.sel .cmdk-ico { filter: drop-shadow(0 0 10px color-mix(in oklab, var(--accent-b) 60%, transparent)); }
 .cmdk-empty { padding: 30px; text-align: center; color: var(--text-faint); font-family: var(--font-mono); font-size: 0.85rem; }
 .cmdk-foot {
   display: flex;
@@ -1544,7 +1627,7 @@ kbd {
   border: 1px solid var(--border);
   background: var(--surface);
   padding: 6px 11px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   cursor: pointer;
   transition: border-color 0.3s, color 0.3s;
 }
@@ -1597,7 +1680,7 @@ html.fx-off .hero-word { transform: none; }
   align-items: center;
   gap: 8px;
   padding: 9px 15px;
-  border-radius: 100px;
+  border-radius: var(--r-pill);
   border: 1px solid var(--border);
   background: rgba(11, 6, 24, 0.72);
   backdrop-filter: blur(12px);
@@ -1615,8 +1698,8 @@ html.fx-off .hero-word { transform: none; }
   color: var(--text-faint);
   transition: color 0.3s, filter 0.3s, transform 0.5s var(--ease-out);
 }
-.fx-toggle.on { border-color: var(--border-bright); box-shadow: 0 0 22px rgba(168, 85, 247, 0.25); }
-.fx-toggle.on .fx-ico { color: var(--cyan); filter: drop-shadow(0 0 9px rgba(34, 211, 238, 0.7)); transform: rotate(72deg); }
+.fx-toggle.on { border-color: var(--border-bright); box-shadow: 0 0 22px color-mix(in oklab, var(--accent-a) 25%, transparent); }
+.fx-toggle.on .fx-ico { color: var(--cyan); filter: drop-shadow(0 0 9px color-mix(in oklab, var(--accent-b) 70%, transparent)); transform: rotate(72deg); }
 .fx-toggle .fx-state { color: var(--text-faint); font-weight: 600; }
 .fx-toggle.on .fx-state { color: var(--cyan); }
 @media (max-width: 560px) {
@@ -1636,8 +1719,8 @@ html.fx-off .hero-word { transform: none; }
   font-weight: 600;
   font-size: 0.8rem;
   padding: 10px 20px;
-  border-radius: 100px;
-  box-shadow: 0 8px 40px rgba(168, 85, 247, 0.5);
+  border-radius: var(--r-pill);
+  box-shadow: 0 8px 40px color-mix(in oklab, var(--accent-a) 50%, transparent);
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.35s, transform 0.35s var(--ease-spring);
@@ -1652,8 +1735,8 @@ body.no-webgl .hero::before {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(55% 50% at 22% 28%, rgba(168, 85, 247, 0.38), transparent 60%),
-    radial-gradient(50% 45% at 80% 38%, rgba(34, 211, 238, 0.30), transparent 62%),
+    radial-gradient(55% 50% at 22% 28%, color-mix(in oklab, var(--accent-a) 38%, transparent), transparent 60%),
+    radial-gradient(50% 45% at 80% 38%, color-mix(in oklab, var(--accent-b) 30%, transparent), transparent 62%),
     radial-gradient(48% 48% at 55% 82%, rgba(236, 72, 153, 0.22), transparent 60%),
     radial-gradient(60% 60% at 50% 50%, rgba(124, 58, 237, 0.16), transparent 70%);
   background-color: transparent;
@@ -1663,3 +1746,40 @@ body.no-webgl .hero::before {
   0%   { transform: scale(1) translate(0, 0); filter: hue-rotate(0deg); }
   100% { transform: scale(1.18) translate(2%, -3%); filter: hue-rotate(24deg); }
 }
+
+/* ─────────── TAP TARGETS ───────────
+   Several controls are deliberately small: the window lights are a macOS
+   quotation, the inline links sit inside running text, and growing either
+   for real would wreck the composition. So the *hit area* grows instead,
+   through a transparent ::after that is absolutely positioned and therefore
+   costs no layout. Visual size is untouched; the thing you can hit is not.
+   Sized against WCAG 2.2 AA (2.5.8, 24x24 minimum), reaching 44x44 wherever
+   the surrounding layout has room for it. */
+
+.os-lights button.tl-dot,
+.os-power-btn,
+.project-link,
+.contact-alt a,
+.orbit-link {
+  position: relative;
+}
+.os-lights button.tl-dot::after,
+.os-power-btn::after,
+.project-link::after,
+.contact-alt a::after,
+.orbit-link::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max(100%, var(--hit-w, 44px));
+  height: max(100%, var(--hit-h, 44px));
+}
+/* the close button's neighbours are inert spans, so a 30px target here
+   cannot swallow another control */
+.os-lights button.tl-dot { --hit-w: 30px; --hit-h: 30px; }
+/* inline links: only the vertical axis needs help */
+.project-link,
+.contact-alt a,
+.orbit-link { --hit-w: 100%; --hit-h: 44px; }
